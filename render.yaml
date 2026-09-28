@@ -16,18 +16,13 @@ services:
       - key: SHIFT_DB
         value: sqlite:////data/shift.db
       - key: SHIFT_PUBLIC_ORIGIN
-        sync: false
+        fromService:
+          name: shift-note
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
       - key: SHIFT_AUTH_SECRET
         generateValue: true
       - key: SHIFT_SETUP_TOKEN
         generateValue: true
-      - key: SHIFT_SMTP_HOST
-        sync: false
-      - key: SHIFT_SMTP_PORT
-        value: "465"
-      - key: SHIFT_SMTP_USER
-        sync: false
-      - key: SHIFT_SMTP_PASSWORD
-        sync: false
-      - key: SHIFT_MAIL_FROM
-        sync: false
+      - key: PORT
+        value: "8000"
