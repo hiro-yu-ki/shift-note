@@ -12,7 +12,7 @@ WindowsでGmailを送信元にする場合は [設定手順](frontend/public/hel
 
 管理者用 **`/admin`** と従業員配布用 **`/employee`** を用意しました。「スタッフ」で本人のメールを登録すると、本人宛ての使い捨て確認コードでログインできます。メール変更・利用停止でセッションを失効させます。公開版は従来のトークンURLを無効化します。
 
-- [公開・運用・バックアップ・受入確認](docs/RELEASE.md)
+- 公開・運用・バックアップ・受入確認
 - [管理者の利用手順](frontend/public/help/manager.html) / [従業員の利用手順](frontend/public/help/employee.html)（起動後は `/help/manager.html`、`/help/employee.html`）
 - 公開設定：`Dockerfile` / `render.yaml`。Renderの単一インスタンス＋永続ディスク＋TLS対応SMTPを想定。秘密情報と既存DBは配布物に含めません。
 - 公開契約・実メール到達は環境設定後の受入確認が必要です。ローカルでメール設定がなければ、従業員ログイン画面は「準備中」と表示します。確認コードの画面表示・ログ出力による代替認証は設けていません。
