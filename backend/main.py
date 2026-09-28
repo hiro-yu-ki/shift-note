@@ -39,7 +39,7 @@ from .seed import demo
 validate_config()
 app = FastAPI(
     title="シフトノート API",
-    version="1.3.0",
+    version="1.3.1",
     docs_url=None if production() else "/docs",
     redoc_url=None if production() else "/redoc",
     openapi_url=None if production() else "/openapi.json",
@@ -722,7 +722,7 @@ def health():
     with Session(db.engine) as session:
         if not session.get(db.Snapshot, 1):
             raise HTTPException(503, "Database unavailable")
-    return {"status": "ok", "version": "1.3.0"}
+    return {"status": "ok", "version": "1.3.1"}
 
 
 @app.get("/admin")

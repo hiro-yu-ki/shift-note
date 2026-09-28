@@ -9,18 +9,20 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Header, HTTPException, Request, Response
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from . import db
 from .breaks import break_minutes, required_break
+from .config import production
 from .employee_auth import employee_id
 from .payroll import cycle, estimate
 
 router = APIRouter()
 JST = ZoneInfo("Asia/Tokyo")
+KIOSK_COOKIE = "shift_kiosk"
 
 
 def local_now():
@@ -236,16 +238,74 @@ def rotate_kiosk_token():
     return {"token": token}
 
 
-def kiosk_authorized(token):
+@router.get("/api/operations/kiosk-devices")
+def kiosk_devices():
     with Session(db.engine) as session:
-        row = session.get(db.KioskCredential, 1)
-        if not token or not row or not secrets.compare_digest(row.digest, hashlib.sha256(token.encode()).hexdigest()):
-            raise HTTPException(401, "勤怠画面のリンクが無効です。管理者から新しいリンクを開いてください")
+        return [{"id": row.digest, "label": row.label, "created_at": row.created_at, "last_seen": row.last_seen}
+                for row in session.scalars(select(db.KioskDevice).order_by(db.KioskDevice.created_at)).all()]
+
+
+@router.delete("/api/operations/kiosk-devices/{digest}")
+def revoke_kiosk_device(digest: str):
+    with Session(db.engine) as session:
+        row = session.get(db.KioskDevice, digest)
+        if not row:
+            raise HTTPException(404, "端末が見つかりません")
+        session.delete(row)
+        session.commit()
+    return {"ok": True}
+
+
+class PairBody(BaseModel):
+    token: str = Field(min_length=32, max_length=256)
+    label: str = Field(default="店舗の打刻端末", min_length=1, max_length=80)
+
+
+@router.post("/api/kiosk/pair")
+def pair_kiosk(body: PairBody, response: Response):
+    device_token = secrets.token_urlsafe(32)
+    with Session(db.engine) as session:
+        session.execute(text("BEGIN IMMEDIATE"))
+        credential = session.get(db.KioskCredential, 1)
+        if not credential or not secrets.compare_digest(credential.digest, hashlib.sha256(body.token.encode()).hexdigest()):
+            raise HTTPException(401, "登録リンクの期限が切れています。管理者から新しいリンクを受け取ってください")
+        session.add(db.KioskDevice(
+            digest=hashlib.sha256(device_token.encode()).hexdigest(),
+            label=body.label.strip(), created_at=db.now(), last_seen=db.now(),
+        ))
+        session.delete(credential)  # Pairing links work once; registered devices remain valid.
+        session.commit()
+    response.set_cookie(KIOSK_COOKIE, device_token, httponly=True, secure=production(),
+                        samesite="strict", max_age=365 * 86400, path="/api/kiosk")
+    return {"ok": True}
+
+
+def kiosk_authorized(request, token=None, response=None):
+    device_token = request.cookies.get(KIOSK_COOKIE, "")
+    with Session(db.engine) as session:
+        device = session.get(db.KioskDevice, hashlib.sha256(device_token.encode()).hexdigest()) if device_token else None
+        if device:
+            device.last_seen = db.now()
+            session.commit()
+            if response is not None:
+                response.set_cookie(KIOSK_COOKIE, device_token, httponly=True, secure=production(),
+                                    samesite="strict", max_age=365 * 86400, path="/api/kiosk")
+            return
+        credential = session.get(db.KioskCredential, 1)
+        if token and credential and secrets.compare_digest(credential.digest, hashlib.sha256(token.encode()).hexdigest()):
+            return
+    raise HTTPException(401, "この端末は未登録です。管理者から登録リンクを受け取ってください")
+
+
+@router.get("/api/kiosk/status")
+def kiosk_status(request: Request, response: Response):
+    kiosk_authorized(request, response=response)
+    return {"registered": True}
 
 
 @router.get("/api/kiosk/today")
-def kiosk_today(x_kiosk_token: str | None = Header(default=None)):
-    kiosk_authorized(x_kiosk_token)
+def kiosk_today(request: Request, response: Response, x_kiosk_token: str | None = Header(default=None)):
+    kiosk_authorized(request, x_kiosk_token, response)
     state = db.get_state()
     today = local_now().date()
     assignments = [a for a in confirmed_assignments(state) if a.date == today]
@@ -273,8 +333,8 @@ class ClockInBody(BaseModel):
 
 
 @router.post("/api/kiosk/clock-in")
-def clock_in(body: ClockInBody, x_kiosk_token: str | None = Header(default=None)):
-    kiosk_authorized(x_kiosk_token)
+def clock_in(body: ClockInBody, request: Request, x_kiosk_token: str | None = Header(default=None)):
+    kiosk_authorized(request, x_kiosk_token)
     state = db.get_state()
     today = local_now().date()
     assignment = next((a for a in confirmed_assignments(state) if a.staff == body.staff and a.date == today), None)
@@ -301,8 +361,8 @@ class ClockOutBody(BaseModel):
 
 
 @router.post("/api/kiosk/clock-out")
-def clock_out(body: ClockOutBody, x_kiosk_token: str | None = Header(default=None)):
-    kiosk_authorized(x_kiosk_token)
+def clock_out(body: ClockOutBody, request: Request, x_kiosk_token: str | None = Header(default=None)):
+    kiosk_authorized(request, x_kiosk_token)
     state = db.get_state()
     with Session(db.engine) as session:
         session.execute(text("BEGIN IMMEDIATE"))
@@ -365,7 +425,7 @@ def operations_overview():
     with Session(db.engine) as session:
         changes = session.scalars(select(db.ShiftChangeRequest).order_by(db.ShiftChangeRequest.created_at.desc())).all()
         attendance = session.scalars(select(db.Attendance).order_by(db.Attendance.clock_in.desc())).all()
-        kiosk_ready = bool(session.get(db.KioskCredential, 1))
+        kiosk_ready = bool(session.get(db.KioskCredential, 1) or session.scalar(select(db.KioskDevice.digest).limit(1)))
     rows = [pay_summary(state, s, assignments, attendance, today) for s in state.staff if s.active]
     return {
         "date": str(today),

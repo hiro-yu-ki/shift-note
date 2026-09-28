@@ -107,3 +107,24 @@ def test_kiosk_rotation_revokes_old_link(client, monkeypatch):
     second = client.post("/api/operations/kiosk-token").json()["token"]
     assert client.get("/api/kiosk/today", headers={"x-kiosk-token": first}).status_code == 401
     assert client.get("/api/kiosk/today", headers={"x-kiosk-token": second}).status_code == 200
+
+
+def test_kiosk_device_stays_registered_without_reusing_link(client, monkeypatch):
+    confirmed_today(client, monkeypatch)
+    first = client.post("/api/operations/kiosk-token").json()["token"]
+    with TestClient(app) as terminal:
+        assert terminal.get("/api/kiosk/status").status_code == 401
+        assert terminal.post("/api/kiosk/pair", json={"token": first, "label": "レジ横"}).status_code == 200
+        assert terminal.get("/api/kiosk/status").json()["registered"]
+        assert terminal.get("/api/kiosk/today").status_code == 200
+        assert client.get("/api/kiosk/today", headers={"x-kiosk-token": first}).status_code == 401
+        second = client.post("/api/operations/kiosk-token").json()["token"]
+        assert second != first
+        assert terminal.get("/api/kiosk/today").status_code == 200
+        clock = terminal.post("/api/kiosk/clock-in", json={"staff": "s"})
+        assert clock.status_code == 200
+        assert terminal.post("/api/kiosk/clock-out", json={"attendance": clock.json()["id"]}).status_code == 200
+        devices = client.get("/api/operations/kiosk-devices").json()
+        assert len(devices) == 1 and devices[0]["label"] == "レジ横"
+        assert client.delete(f'/api/operations/kiosk-devices/{devices[0]["id"]}').status_code == 200
+        assert terminal.get("/api/kiosk/today").status_code == 401

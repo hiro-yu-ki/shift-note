@@ -56,7 +56,7 @@ def test_entrypoints_and_manuals(client):
         assert response.status_code == 200
         assert response.headers["cache-control"] == "no-store"
         assert "text/html" in response.headers["content-type"]
-    assert client.get("/healthz").json()["version"] == "1.3.0"
+    assert client.get("/healthz").json()["version"] == "1.3.1"
     assert client.get("/admin", headers={"host": "untrusted.example"}).status_code == 400
 
 

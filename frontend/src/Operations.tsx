@@ -17,6 +17,7 @@ const toIso = (value: string) => new Date(`${value}:00+09:00`).toISOString();
 
 export function Operations() {
   const [data, setData] = useState<Overview | null>(null);
+  const [devices, setDevices] = useState<{ id: string; label: string; created_at: string; last_seen: string }[]>([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [link, setLink] = useState("");
@@ -26,7 +27,13 @@ export function Operations() {
   const [breakMinutes, setBreakMinutes] = useState(0);
   const [breakConfirmed, setBreakConfirmed] = useState(false);
   const [reason, setReason] = useState("");
-  const reload = async () => setData(await api<Overview>("/operations/overview"));
+  const reload = async () => {
+    const [overview, registered] = await Promise.all([
+      api<Overview>("/operations/overview"),
+      api<typeof devices>("/operations/kiosk-devices"),
+    ]);
+    setData(overview); setDevices(registered);
+  };
   useEffect(() => { void reload().catch((e) => setError(e.message)); }, []);
   const run = async (action: () => Promise<void>) => {
     setError(""); setNotice("");
@@ -42,14 +49,17 @@ export function Operations() {
     {notice && <p className="notice" role="status">{notice}</p>}
     <section className="operations-section">
       <h2>店舗の打刻画面</h2>
-      <p>店舗の端末でこのリンクを開いたままにします。本日の確定シフトの名前から出勤・退勤できます。リンクを作り直すと古いリンクは使えなくなります。</p>
+      <p>店舗の端末を最初に一度だけ登録します。その後は固定URLを開くだけで、毎日の出勤者が自動で切り替わります。</p>
+      <p><a href="/clock" target="_blank" rel="noreferrer">固定の打刻画面を開く ↗</a> <span className="muted">{location.origin}/clock</span></p>
       <button onClick={() => void run(async () => {
         const result = await api<{ token: string }>("/operations/kiosk-token", "POST");
         setLink(`${location.origin}/clock#token=${encodeURIComponent(result.token)}`);
-        setNotice("打刻画面のリンクを作成しました。店舗の端末で開いてください");
-      })}>{data?.kiosk_ready ? "打刻リンクを再発行" : "打刻リンクを作成"}</button>
-      {link && <div className="kiosk-link"><a href={link} target="_blank" rel="noreferrer">打刻画面を開く ↗</a><button onClick={() => void navigator.clipboard.writeText(link).then(() => setNotice("リンクをコピーしました"))}>リンクをコピー</button></div>}
-      {data?.kiosk_ready && !link && <p className="muted">リンクは作成済みです。表示できない場合は再発行してください。</p>}
+        setNotice("端末登録リンクを作成しました。打刻用の端末で一度だけ開いてください");
+      })}>端末登録リンクを作る</button>
+      {link && <div className="kiosk-link"><a href={link} target="_blank" rel="noreferrer">この端末を登録 ↗</a><button onClick={() => void navigator.clipboard.writeText(link).then(() => setNotice("登録リンクをコピーしました"))}>登録リンクをコピー</button></div>}
+      {link && <p className="muted">このリンクは端末を1台登録すると無効になります。登録済み端末は影響を受けません。</p>}
+      <h3>登録済み端末</h3>
+      {!devices.length ? <p className="inline-empty">登録済みの端末はありません。</p> : <div className="work-rows">{devices.map((device) => <div className="work-row" key={device.id}><div><strong>{device.label}</strong><small>最終利用 {new Date(device.last_seen).toLocaleString("ja-JP")}</small></div><div /><button onClick={() => void run(async () => { await api(`/operations/kiosk-devices/${device.id}`, "DELETE"); setNotice("端末の登録を解除しました"); })}>利用停止</button></div>)}</div>}
     </section>
     <section className="operations-section">
       <h2>勤務変更の相談 <small>{data?.requests.filter((r) => r.status === "未確認").length || 0}件未確認</small></h2>

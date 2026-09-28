@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { hm } from "./types";
 
 type Today = {
@@ -8,11 +8,10 @@ type Today = {
   working: { id: string; staff: string; name: string; clock_in: string }[];
 };
 
-const token = new URLSearchParams(location.hash.slice(1)).get("token") || "";
 async function kiosk<T>(path: string, body?: object): Promise<T> {
   const response = await fetch(`/api/kiosk/${path}`, {
     method: body ? "POST" : "GET",
-    headers: { "X-Kiosk-Token": token, "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json" },
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await response.json();
@@ -21,6 +20,8 @@ async function kiosk<T>(path: string, body?: object): Promise<T> {
 }
 
 export default function ClockKiosk() {
+  const startup = useRef<Promise<void> | null>(null);
+  const [registered, setRegistered] = useState<boolean | null>(null);
   const [today, setToday] = useState<Today | null>(null);
   const [now, setNow] = useState(new Date());
   const [selected, setSelected] = useState("");
@@ -30,11 +31,25 @@ export default function ClockKiosk() {
   const [busy, setBusy] = useState(false);
   const refresh = async () => setToday(await kiosk<Today>("today"));
   useEffect(() => {
-    if (!token) return;
-    void refresh().catch((e) => setError(e.message));
+    if (!startup.current) startup.current = (async () => {
+      const token = new URLSearchParams(location.hash.slice(1)).get("token");
+      if (token) {
+        await kiosk("pair", { token, label: "店舗の打刻端末" });
+        history.replaceState(null, "", "/clock");
+      }
+      await kiosk("status");
+      setRegistered(true);
+      await refresh();
+    })().catch((e) => {
+      setRegistered(false);
+      if (location.hash) setError((e as Error).message);
+    });
+  }, []);
+  useEffect(() => {
+    if (!registered) return;
     const timer = setInterval(() => { setNow(new Date()); void refresh().catch((e) => setError(e.message)); }, 30000);
     return () => clearInterval(timer);
-  }, []);
+  }, [registered]);
   const submit = async () => {
     if (!selected || busy) return;
     setBusy(true); setError(""); setNotice("");
@@ -55,10 +70,10 @@ export default function ClockKiosk() {
       <h1>出勤・退勤</h1>
       <p className="kiosk-clock">{now.toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit" })}</p>
       <p className="muted">{now.toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "long", day: "numeric", weekday: "long" })}</p>
-      {!token && <p className="error">勤怠画面のリンクがありません。管理者画面の「勤怠・変更申請」から開いてください。</p>}
+      {registered === false && <p className="notice">この端末はまだ登録されていません。管理者画面の「勤怠・変更申請」で端末登録リンクを一度だけ作り、この端末で開いてください。登録後はこの固定URLから使えます。</p>}
       {error && <p className="error" role="alert">{error}</p>}
       {notice && <p className="notice" role="status">{notice}</p>}
-      {token && <>
+      {registered && <>
         <nav className="kiosk-tabs" aria-label="打刻の種類">
           <button className={mode === "in" ? "active" : ""} onClick={() => { setMode("in"); setSelected(""); }}>出勤する</button>
           <button className={mode === "out" ? "active" : ""} onClick={() => { setMode("out"); setSelected(""); }}>退勤する</button>

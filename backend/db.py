@@ -113,6 +113,14 @@ class KioskCredential(Base):
     created_at: Mapped[str] = mapped_column(String)
 
 
+class KioskDevice(Base):
+    __tablename__ = "kiosk_device"
+    digest: Mapped[str] = mapped_column(String, primary_key=True)
+    label: Mapped[str] = mapped_column(String)
+    created_at: Mapped[str] = mapped_column(String)
+    last_seen: Mapped[str] = mapped_column(String)
+
+
 class Attendance(Base):
     __tablename__ = "attendance"
     id: Mapped[str] = mapped_column(String, primary_key=True)
