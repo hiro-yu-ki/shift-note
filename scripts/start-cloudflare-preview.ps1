@@ -13,15 +13,20 @@ $env:SHIFT_PUBLIC_ORIGIN = $PublicOrigin
 $env:SHIFT_DB = 'sqlite:///' + $dbFile.Replace('\', '/')
 $random = [Security.Cryptography.RandomNumberGenerator]::Create()
 $bytes = New-Object byte[] 32
-$random.GetBytes($bytes)
-$env:SHIFT_AUTH_SECRET = [Convert]::ToBase64String($bytes)
-$random.GetBytes($bytes)
-$env:SHIFT_SETUP_TOKEN = [Convert]::ToBase64String($bytes)
+$secretPath = Join-Path $previewDir 'auth-secret.txt'
+$tokenPath = Join-Path $previewDir 'setup-token.txt'
+foreach ($secretFile in @($secretPath, $tokenPath)) {
+    if (-not (Test-Path -LiteralPath $secretFile)) {
+        $random.GetBytes($bytes)
+        [IO.File]::WriteAllText($secretFile, [Convert]::ToBase64String($bytes), [Text.UTF8Encoding]::new($false))
+    }
+    icacls $secretFile /inheritance:r /grant:r "${env:USERNAME}:(R,W)" | Out-Null
+}
+$env:SHIFT_AUTH_SECRET = [IO.File]::ReadAllText($secretPath).Trim()
+$env:SHIFT_SETUP_TOKEN = [IO.File]::ReadAllText($tokenPath).Trim()
 $random.Dispose()
 $env:SHIFT_ALLOW_DEMO = '0'
 $env:SHIFT_LOCAL_MAIL_SETTINGS = '1'
-$tokenPath = Join-Path $previewDir 'setup-token.txt'
-[IO.File]::WriteAllText($tokenPath, $env:SHIFT_SETUP_TOKEN, [Text.UTF8Encoding]::new($false))
 & .\.venv64\Scripts\python.exe -m alembic upgrade head
 if ($LASTEXITCODE -ne 0) { throw 'Database migration failed.' }
 Write-Host "Cloudflare preview: $PublicOrigin/admin"

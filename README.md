@@ -1,12 +1,10 @@
-> 公開用スナップショットです。実データ、認証情報、運用環境の識別子は含めていません。
-
 # シフトノート
 
 ## リリース版 1.2：時間軸カレンダー・固定勤務・メール設定
 
 週・日カレンダーは横に時間、縦に日付を表示します。通常は名前だけ、マウスを重ねると詳細、クリックで編集できます。必要人数は曜日別・特定日別に設定します。雇用区分と契約上の固定勤務も登録できますが、提出希望の時間外に勤務を入れることはありません。矛盾する条件は事前確認で停止します。
 
-**無料の公開確認はCloudflare Quick Tunnelを使用します。** このPCでアプリを動かし、一時的なHTTPS URLから管理者・従業員画面にアクセスできます。Gmail未設定でも画面は開けますが、従業員のメール認証には送信元設定が必要です。URLの固定・継続運用には独自ドメインと常時稼働するPCが必要です。[無料での起動手順](docs/CLOUDFLARE_FREE.md)をご覧ください。
+**無料のCloudflare公開URLは https://shift-note.yuki-nova.workers.dev です。** WorkerとWorkers VPC、名前付きTunnelからこのPCのアプリへ接続します。独自ドメインは不要です。Gmail未設定でも画面は開けますが、従業員のメール認証には送信元設定が必要です。PCの常時起動が必要で、Workers VPCは現在無料のオープンベータです。[起動・運用手順](docs/CLOUDFLARE_FREE.md)をご覧ください。
 
 WindowsでGmailを送信元にする場合は [設定手順](frontend/public/help/email.html) に従い `scripts/configure-gmail.ps1` を実行してください。送信元の設定前でも、管理画面の「従業員のログイン管理」から本人画面を閲覧できます。実メール到達は設定後の確認が必要です。
 
@@ -14,16 +12,16 @@ WindowsでGmailを送信元にする場合は [設定手順](frontend/public/hel
 
 管理者用 **`/admin`** と従業員配布用 **`/employee`** を用意しました。「スタッフ」で本人のメールを登録すると、本人宛ての使い捨て確認コードでログインできます。メール変更・利用停止でセッションを失効させます。公開版は従来のトークンURLを無効化します。
 
-- [Cloudflareで無料の一時公開](docs/CLOUDFLARE_FREE.md)
+- [Cloudflare無料公開の運用手順](docs/CLOUDFLARE_FREE.md)
 - [管理者の利用手順](frontend/public/help/manager.html) / [従業員の利用手順](frontend/public/help/employee.html)（起動後は `/help/manager.html`、`/help/employee.html`）
-- 無料公開はPC内の別DBをCloudflare Tunnel経由で使用します。既存の店舗DBや秘密情報は公開しません。
+- 無料公開はPC内の別DBをCloudflare Tunnel経由で使用します。既存の店舗DBは公開しません。メール設定・トンネルトークン・初回設定キーはPC内に保存します。
 - 公開契約・実メール到達は環境設定後の受入確認が必要です。ローカルでメール設定がなければ、従業員ログイン画面は「準備中」と表示します。確認コードの画面表示・ログ出力による代替認証は設けていません。
 
 以下はローカル実行・業務機能の説明です。無料公開の手順は上のCloudflare手順を参照してください。
 
 単一店舗向けのローカルファーストなシフト管理アプリです。スタッフの希望を集め、店舗の必要人数と勤務条件から OR-Tools CP-SAT で3案を作成し、修正・検証・確定・CSV出力まで操作できます。
 
-作業場所: `C:\path\to\project`
+作業場所: `C:\Users\micro\product\バイトのシフト`
 
 ## 最初の起動
 
@@ -32,7 +30,7 @@ WindowsでGmailを送信元にする場合は [設定手順](frontend/public/hel
 PowerShellで実行します。
 
 ```powershell
-cd 'C:\path\to\project'
+cd 'C:\Users\micro\product\バイトのシフト'
 powershell -ExecutionPolicy Bypass -File scripts/start.ps1
 ```
 

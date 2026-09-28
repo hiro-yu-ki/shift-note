@@ -1,41 +1,42 @@
-# Cloudflareで無料の一時公開
+﻿# Cloudflare無料公開の運用手順
 
-現在のPython・OR-Tools・SQLiteを維持する無料の試用方法です。アプリはこのWindows PCで動き、Cloudflare Quick Tunnelが一時的なHTTPS URLを発行します。既存の `shift.db` は公開せず、 `%LOCALAPPDATA%\ShiftNote\cloudflare-preview\shift.db` に別の空DBを作成します。
+公開URLは **https://shift-note.yuki-nova.workers.dev** です。管理者は `/admin`、従業員は `/employee` を開きます。Cloudflare Worker → Workers VPC Service → 名前付きTunnel → このWindows PCのアプリ、の順につながります。独自ドメインは不要です。WorkerとVPC Serviceは現在Cloudflareの無料枠・オープンベータで利用しています。ベータ終了後の料金・仕様は変わり得ます。
 
-**Quick Tunnelは試用・開発向けです。** URLはトンネルを起動し直すたびに変わり、Cloudflareは稼働時間を保証していません。PC、アプリ、cloudflaredの3つが動いている間だけアクセスできます。固定URLで継続利用する場合はCloudflareで管理する独自ドメインを用意し、名前付きTunnelへ切り替えます。ドメインをまだ持っていない場合、その取得費用はこの無料構成に含まれません。
+アプリ本体、OR-Tools、SQLiteはこのPCで実行します。**PCを停止・スリープすると公開URLも利用できません。** Cloudflareだけで24時間稼働するサーバーを無料で確保した構成ではありません。公開DBは `%LOCALAPPDATA%\ShiftNote\cloudflare-preview\shift.db` にあり、作業フォルダー直下の `shift.db` とは別です。
 
-## 起動方法
+## このPCで再起動する
 
-1. [Cloudflare公式のWindows版cloudflared](https://developers.cloudflare.com/tunnel/downloads/)を取得します。このPCでは次のスクリプトが公式リリースから取得し、SHA256を照合します。
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/get-cloudflared.ps1
-```
-2. PowerShellを開き、次を実行します。
+PowerShellを2つ開きます。1つ目で名前付きTunnelを起動します。トークンファイルはこのPCだけに保存され、共有しません。
 
 ```powershell
-.\tools\cloudflared-windows-amd64.exe tunnel --no-autoupdate --url http://127.0.0.1:8002
+cd 'C:\Users\micro\product\バイトのシフト'
+.\tools\cloudflared-windows-amd64.exe tunnel --no-autoupdate run --token-file "$env:LOCALAPPDATA\ShiftNote\cloudflare-preview\tunnel-token.txt"
 ```
 
-3. 出力された `https://...trycloudflare.com` を控えます。別のPowerShellで次を実行します。
+2つ目でアプリを起動します。
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/start-cloudflare-preview.ps1 -PublicOrigin https://発行されたURL.trycloudflare.com
+cd 'C:\Users\micro\product\バイトのシフト'
+powershell -ExecutionPolicy Bypass -File scripts/start-cloudflare-preview.ps1 -PublicOrigin https://shift-note.yuki-nova.workers.dev
 ```
 
-4. `公開URL/admin` を開きます。初回設定キーはこのPCの `%LOCALAPPDATA%\ShiftNote\cloudflare-preview\setup-token.txt` に保存されます。本人がそのファイルを開き、10文字以上の管理者パスワードを設定してください。キーやパスワードを従業員へ渡さないでください。
-5. 管理者画面にログイン後、店舗・スタッフ・勤務条件を登録します。従業員には `公開URL/employee` を伝えます。
+初回の管理者設定キーは `%LOCALAPPDATA%\ShiftNote\cloudflare-preview\setup-token.txt` にあります。本人が管理者画面で10文字以上のパスワードを設定してください。キー・パスワード・トンネルトークンを従業員に渡さないでください。アプリの再起動後も認証用秘密値は同じPC内に保存されます。2つのターミナルを閉じると接続が止まります。
 
-トンネルのURLが変わったら、新しいURLを使って手順3のアプリも再起動します。既存の試用DBは残りますが、セッションは再ログインが必要です。公開URLの変更前に従業員へ古いURLを配布しないでください。
+## 従業員へ配布する前に
 
-## メール認証
+1. 管理者画面の「スタッフ」で本人のメールアドレスを登録します。
+2. [Gmail送信設定](../frontend/public/help/email.html)を完了し、従業員ログイン画面の「確認コードを送る」が使える状態にします。
+3. 本人の受信箱でコードを受け取り、希望提出・確定シフト表示まで確認します。
+4. 従業員へ `https://shift-note.yuki-nova.workers.dev/employee` だけを伝えます。管理者の初回設定キーは伝えません。
 
-公開画面を開くことにGmailは不要です。従業員が自分のメールでログインする前には、送信元の設定と実際の受信確認が必要です。このPCで [Gmailの設定手順](../frontend/public/help/email.html) に従い `scripts/configure-gmail.ps1` を実行します。設定はWindowsユーザー単位で暗号化され、試用サーバーは自動で読み取ります。受信先は管理画面で本人に登録します。認証コードの実送信は、送信元の設定が終わるまで利用できません。
+Gmailが未設定でも両画面を開けますが、従業員はメール認証できません。現在の公開DBは既存店舗データを含まない別DBです。必要な店舗・スタッフ・条件を管理者画面で登録してください。
 
-## 継続利用へ切り替える条件
+## 更新・バックアップ
 
-- 固定URLにはCloudflare管理下の独自ドメインと、名前付きTunnelが必要です。[CloudflareのTunnel設定](https://developers.cloudflare.com/tunnel/get-started/)に従います。無料プランでTunnelを利用できても、新しく取得するドメイン自体は無料とは限りません。
-- このPCは常時起動し、DBバックアップを別の保管先に定期的に置く必要があります。Quick Tunnelは本番運用の可用性を保証しません。
-- Cloudflare Workers無料枠だけに現在のシフト計算を移す方法は採用していません。現在の求解処理は無料枠の実行時間内に収まりません。
+Workerの中継コードは `cloudflare-worker/` にあります。更新時は同フォルダーで `npx wrangler deploy` を実行します。VPC Service IDと名前付きTunnelは既にこのCloudflareアカウントに作成済みです。データのバックアップにはアプリを停止してから公開DBのコピーを別の保管先へ置き、復元操作も確認してください。OS再起動後は上の2つのプロセスを再起動します。公開前・更新後は `/healthz` と両画面、未ログイン管理APIの拒否、本人メールの受信を確認します。
 
-公開前には、初回パスワード、本人メールの受信、希望提出、案の作成、確定表示、バックアップと復元を実データに近い条件で確認してください。
+無料枠とベータの最新条件は [Workers VPC料金](https://developers.cloudflare.com/workers-vpc/platform/pricing/) と [Workers料金](https://developers.cloudflare.com/workers/platform/pricing/) で確認してください。Cloudflare側の固定URLは維持できますが、このPC・ネット回線の稼働率は保証されません。
+
+## 一時トンネルへ戻す場合
+
+名前付きTunnelやWorkerに障害があるときだけ、`cloudflared tunnel --url http://127.0.0.1:8002` で一時URLを発行できます。その場合はアプリの `-PublicOrigin` を一時URLに合わせて再起動してください。URLは毎回変わるため、従業員への常用配布には使いません。

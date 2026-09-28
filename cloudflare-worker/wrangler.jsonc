@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "shift-note",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-28",
+  "workers_dev": true,
+  "vpc_services": [
+    {
+      "binding": "SHIFT_BACKEND",
+      "service_id": "01a0e8ac-9a79-7521-bc29-489ae8bbaf4f"
+    }
+  ]
+}
