@@ -1,5 +1,6 @@
 # Cloudflare固定URL確認（2026-09-29）
 
+- Googleの送信元アカウントでアプリパスワードが利用不可だった原因は、「2 段階認証プロセス」が無効だったことです。Googleの設定画面で確認しました。本人が有効化し、アプリパスワードを作成するまで実送信は未確認です。
 - `shift-note.yuki-nova.workers.dev` にWorker、Workers VPC Service、名前付きTunnelを接続しました。独自ドメインの購入・有料プランは使用していません。Workers VPCの無料提供はオープンベータ中の条件です。
 - 固定URLで `/healthz`、`/admin`、`/employee`、認証状態APIのHTTPS応答200、未ログイン管理APIの401、`Cache-Control: no-store` を確認しました。
 - 公開アプリとDBはPC内にあります。PC・Tunnel・アプリが停止すると利用不可です。実メール受信はGmailアプリパスワードがGoogle側で作成できていないため未確認です。
