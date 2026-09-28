@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: shift-note
+    runtime: docker
+    plan: 1c-2g
+    region: singapore
+    healthCheckPath: /healthz
+    autoDeployTrigger: "off"
+    disk:
+      name: shift-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: SHIFT_ENV
+        value: production
+      - key: SHIFT_DB
+        value: sqlite:////data/shift.db
+      - key: SHIFT_PUBLIC_ORIGIN
+        sync: false
+      - key: SHIFT_AUTH_SECRET
+        generateValue: true
+      - key: SHIFT_SETUP_TOKEN
+        generateValue: true
+      - key: SHIFT_SMTP_HOST
+        sync: false
+      - key: SHIFT_SMTP_PORT
+        value: "465"
+      - key: SHIFT_SMTP_USER
+        sync: false
+      - key: SHIFT_SMTP_PASSWORD
+        sync: false
+      - key: SHIFT_MAIL_FROM
+        sync: false
