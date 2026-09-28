@@ -29,6 +29,9 @@ def test_production_config_requires_explicit_origin_and_secrets(monkeypatch):
     validate_config()
     assert allowed_hosts() == ["shifts.example.com"]
     assert allowed_origins() == ["https://shifts.example.com"]
+    if os.name == "nt":
+        monkeypatch.setenv("SHIFT_DB", "sqlite:///C:/ShiftNote/shift.db")
+        validate_config()
 
 
 def test_delivery_failure_is_generic_and_invalidates_code(client, monkeypatch, caplog):

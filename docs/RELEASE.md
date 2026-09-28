@@ -1,4 +1,6 @@
-# シフトノート 1.2 公開・運用手順
+# シフトノート 1.2 以前の有料Render構成
+
+無料での一時公開は [CLOUDFLARE_FREE.md](CLOUDFLARE_FREE.md) を参照してください。この有料Render構成は現在の選択肢ではありません。
 
 ## Windowsで先にメール認証を試す
 

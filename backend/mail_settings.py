@@ -22,7 +22,7 @@ def settings():
     configured = {k: os.getenv(k, "") for k in KEYS}
     if (
         any(configured[k] for k in KEYS if k != "SHIFT_SMTP_PORT")
-        or production()
+        or (production() and os.getenv("SHIFT_LOCAL_MAIL_SETTINGS") != "1")
         or os.name != "nt"
     ):
         return configured

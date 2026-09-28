@@ -1,6 +1,7 @@
 """Explicit public-origin configuration; local defaults never expose the service."""
 
 import os
+import re
 from urllib.parse import urlsplit
 
 
@@ -29,7 +30,9 @@ def validate_config():
         raise RuntimeError("SHIFT_AUTH_SECRET must contain at least 32 characters")
     if len(os.getenv("SHIFT_SETUP_TOKEN", "")) < 32:
         raise RuntimeError("SHIFT_SETUP_TOKEN must contain at least 32 characters")
-    if not os.getenv("SHIFT_DB", "").startswith("sqlite:////"):
+    database_url = os.getenv("SHIFT_DB", "")
+    windows_absolute = os.name == "nt" and re.match(r"^sqlite:///[A-Za-z]:/", database_url)
+    if not database_url.startswith("sqlite:////") and not windows_absolute:
         raise RuntimeError("Production requires an absolute SQLite path on a persistent disk")
 
 

@@ -11,3 +11,6 @@ coverage/
 *.pyc
 __pycache__/
 .wrangler/
+
+tools/
+.cloudflare-preview/

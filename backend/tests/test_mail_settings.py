@@ -61,3 +61,5 @@ def test_windows_encrypted_local_config(monkeypatch, tmp_path):
     assert employee_auth.email_ready()
     monkeypatch.setenv("SHIFT_ENV", "production")
     assert not employee_auth.email_ready()
+    monkeypatch.setenv("SHIFT_LOCAL_MAIL_SETTINGS", "1")
+    assert employee_auth.email_ready()
