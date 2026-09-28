@@ -9,7 +9,7 @@ from sqlalchemy import delete, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from . import db
+from . import db, tenant
 from .config import production
 
 router = APIRouter(prefix="/api/auth")
@@ -20,14 +20,14 @@ def authenticated(request):
     token = request.cookies.get(COOKIE, "")
     if not token:
         return False
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         row = session.get(db.ManagerSession, hashlib.sha256(token.encode()).hexdigest())
         return bool(row and datetime.fromisoformat(row.expires) > datetime.now(timezone.utc))
 
 
 @router.get("/status")
 def status(request: Request):
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         return {
             "configured": bool(session.get(db.ManagerAuth, 1)),
             "authenticated": authenticated(request),
@@ -47,7 +47,7 @@ def password_hash(password, salt):
 @router.post("/login")
 def login(body: Password, response: Response):
     now = datetime.now(timezone.utc)
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         session.execute(text("BEGIN IMMEDIATE"))
         auth = session.get(db.ManagerAuth, 1)
         if not auth:
@@ -89,11 +89,16 @@ def login(body: Password, response: Response):
 
 @router.post("/setup")
 def setup(body: Password, response: Response):
-    if production() and not secrets.compare_digest(
-        body.setup_token, os.environ["SHIFT_SETUP_TOKEN"]
-    ):
-        raise HTTPException(403, "初回設定キーを確認してください")
-    with Session(db.engine) as session:
+    if production():
+        mid = tenant.merchant_id.get()
+        if mid:
+            from .platform import validate_manager_setup_token
+            valid = validate_manager_setup_token(mid, body.setup_token)
+        else:
+            valid = secrets.compare_digest(body.setup_token, os.environ["SHIFT_SETUP_TOKEN"])
+        if not valid:
+            raise HTTPException(403, "初回設定キーを確認してください")
+    with Session(db.current_engine()) as session:
         if session.get(db.ManagerAuth, 1):
             raise HTTPException(409, "管理者パスワードは設定済みです")
         salt = secrets.token_hex(16)
@@ -109,13 +114,17 @@ def setup(body: Password, response: Response):
             session.commit()
         except IntegrityError as exc:
             raise HTTPException(409, "管理者パスワードは設定済みです") from exc
-    return login(body, response)
+    result = login(body, response)
+    if tenant.merchant_id.get():
+        from .platform import consume_manager_setup_token
+        consume_manager_setup_token(tenant.merchant_id.get())
+    return result
 
 
 @router.post("/logout")
 def logout(request: Request, response: Response):
     token = request.cookies.get(COOKIE, "")
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         session.execute(
             delete(db.ManagerSession).where(
                 db.ManagerSession.digest == hashlib.sha256(token.encode()).hexdigest()

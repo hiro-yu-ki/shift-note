@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { hm } from "./types";
+import { appUrl, hm } from "./types";
 
 type Today = {
   date: string;
@@ -9,7 +9,7 @@ type Today = {
 };
 
 async function kiosk<T>(path: string, body?: object): Promise<T> {
-  const response = await fetch(`/api/kiosk/${path}`, {
+  const response = await fetch(appUrl(`/api/kiosk/${path}`), {
     method: body ? "POST" : "GET",
     headers: { "Content-Type": "application/json" },
     body: body ? JSON.stringify(body) : undefined,
@@ -35,7 +35,7 @@ export default function ClockKiosk() {
       const token = new URLSearchParams(location.hash.slice(1)).get("token");
       if (token) {
         await kiosk("pair", { token, label: "店舗の打刻端末" });
-        history.replaceState(null, "", "/clock");
+        history.replaceState(null, "", appUrl("/clock"));
       }
       await kiosk("status");
       setRegistered(true);
@@ -64,7 +64,7 @@ export default function ClockKiosk() {
   };
   const people = mode === "in" ? today?.scheduled || [] : today?.working || [];
   return <div className="kiosk-app">
-    <header className="kiosk-header"><a href="/">シフトノート</a><span>勤怠</span></header>
+    <header className="kiosk-header"><a href={appUrl("/admin")}>シフトノート</a><span>勤怠</span></header>
     <main className="kiosk-main">
       <p className="section-kicker">{today?.store || "店舗の打刻画面"}</p>
       <h1>出勤・退勤</h1>

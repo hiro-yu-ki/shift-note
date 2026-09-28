@@ -10,6 +10,7 @@ export default defineConfig({
     viewport: { width: 1440, height: 1000 },
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
+    actionTimeout: 15000,
   },
   webServer: {
     command: "..\\.venv64\\Scripts\\python.exe ..\\scripts\\e2e_server.py",

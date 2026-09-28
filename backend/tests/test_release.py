@@ -22,6 +22,9 @@ def test_production_config_requires_explicit_origin_and_secrets(monkeypatch):
         validate_config()
     monkeypatch.setenv("SHIFT_AUTH_SECRET", "a" * 32)
     monkeypatch.setenv("SHIFT_SETUP_TOKEN", "b" * 32)
+    monkeypatch.setenv("SHIFT_PLATFORM_SETUP_TOKEN", "c" * 32)
+    monkeypatch.setenv("SHIFT_PLATFORM_DB", "sqlite:////data/platform.db")
+    monkeypatch.setenv("SHIFT_TENANT_ROOT", "/data/tenants")
     monkeypatch.setenv("SHIFT_DB", "sqlite:///./shift.db")
     with pytest.raises(RuntimeError):
         validate_config()
@@ -31,6 +34,8 @@ def test_production_config_requires_explicit_origin_and_secrets(monkeypatch):
     assert allowed_origins() == ["https://shifts.example.com"]
     if os.name == "nt":
         monkeypatch.setenv("SHIFT_DB", "sqlite:///C:/ShiftNote/shift.db")
+        monkeypatch.setenv("SHIFT_PLATFORM_DB", "sqlite:///C:/ShiftNote/platform.db")
+        monkeypatch.setenv("SHIFT_TENANT_ROOT", "C:/ShiftNote/tenants")
         validate_config()
 
 
@@ -56,7 +61,7 @@ def test_entrypoints_and_manuals(client):
         assert response.status_code == 200
         assert response.headers["cache-control"] == "no-store"
         assert "text/html" in response.headers["content-type"]
-    assert client.get("/healthz").json()["version"] == "1.3.1"
+    assert client.get("/healthz").json()["version"] == "1.4.0"
     assert client.get("/admin", headers={"host": "untrusted.example"}).status_code == 400
 
 

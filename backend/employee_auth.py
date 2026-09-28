@@ -110,7 +110,7 @@ def consume_rate(session, key, limit, seconds):
 
 
 def rate_limits(request, email=None):
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         session.execute(text("BEGIN IMMEDIATE"))
         consume_rate(
             session, "ip:" + (request.client.host if request.client else "unknown"), 60, 600
@@ -129,7 +129,7 @@ def active_staff(sid):
 
 def employee_id(request):
     token = request.cookies.get(COOKIE, "")
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         row = session.get(db.EmployeeSession, digest(token)) if token else None
         account = session.get(db.EmployeeAccount, row.staff) if row else None
         if (
@@ -168,7 +168,7 @@ def request_code(body: EmailBody, request: Request, background_tasks: Background
     rate_limits(request, body.email)
     now = datetime.now(timezone.utc)
     ticket, code = secrets.token_urlsafe(32), f"{secrets.randbelow(100000000):08d}"
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         account = session.query(db.EmployeeAccount).filter_by(email=body.email).first()
         eligible = account and active_staff(account.staff)
         session.execute(delete(db.EmailChallenge).where(db.EmailChallenge.expires < db.now()))
@@ -196,7 +196,7 @@ def deliver_code(email, code, ticket):
     try:
         send_code(email, code)
     except Exception:
-        with Session(db.engine) as session:
+        with Session(db.current_engine()) as session:
             session.execute(delete(db.EmailChallenge).where(db.EmailChallenge.id == ticket))
             session.commit()
         import logging
@@ -210,7 +210,7 @@ def deliver_code(email, code, ticket):
 def verify(body: VerifyBody, request: Request, response: Response):
     rate_limits(request)
     token = secrets.token_urlsafe(32)
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         session.execute(text("BEGIN IMMEDIATE"))
         row = session.get(db.EmailChallenge, body.ticket)
         account = (
@@ -257,7 +257,7 @@ def verify(body: VerifyBody, request: Request, response: Response):
 
 @router.post("/api/employee/logout")
 def logout(request: Request, response: Response):
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         session.execute(
             delete(db.EmployeeSession).where(
                 db.EmployeeSession.digest == digest(request.cookies.get(COOKIE, ""))
@@ -272,7 +272,7 @@ def logout(request: Request, response: Response):
 
 @router.get("/api/employee-accounts")
 def accounts():
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         return {
             "accounts": [
                 {"staff": a.staff, "email": a.email, "revision": a.revision}
@@ -287,7 +287,7 @@ def accounts():
 def register(sid: str, body: AccountBody):
     if not active_staff(sid):
         raise HTTPException(404, "在籍中のスタッフが見つかりません")
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         session.execute(text("BEGIN IMMEDIATE"))
         row = session.get(db.EmployeeAccount, sid)
         if body.revision != (row.revision if row else 0):
@@ -310,7 +310,7 @@ def register(sid: str, body: AccountBody):
 
 @router.post("/api/employee-accounts/{sid}/revoke")
 def revoke(sid: str):
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         session.execute(text("BEGIN IMMEDIATE"))
         row = session.get(db.EmployeeAccount, sid)
         if row:

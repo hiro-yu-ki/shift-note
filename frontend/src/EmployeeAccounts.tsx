@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, type Staff } from "./types";
+import { api, appUrl, type Staff } from "./types";
 import { Field } from "./ui";
 
 type Account = { staff: string; email: string; revision: number };
@@ -35,14 +35,14 @@ export function EmployeeAccounts({
         本人のメールアドレスを登録し、下の共通URLを配布してください。メールに届く確認コードで本人を識別します。
       </p>
       <div className="toolbar">
-        <a href="/employee" target="_blank" rel="noreferrer">
-          {location.origin}/employee
+        <a href={appUrl("/employee")} target="_blank" rel="noreferrer">
+          {location.origin}{appUrl("/employee")}
         </a>
         <button
           onClick={async () => {
             try {
               await navigator.clipboard.writeText(
-                location.origin + "/employee",
+                location.origin + appUrl("/employee"),
               );
               N("従業員用URLをコピーしました");
             } catch {

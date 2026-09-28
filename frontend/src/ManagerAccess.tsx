@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { CalendarDays, ArrowRight } from "lucide-react";
-import { api } from "./types";
+import { api, appUrl } from "./types";
 import { Field } from "./ui";
 export function ManagerAccess({ children }: { children: ReactNode }) {
   const [status, S] = useState<{
@@ -103,7 +103,7 @@ export function ManagerAccess({ children }: { children: ReactNode }) {
         </p>
       )}
       <p>
-        <a href="/employee">従業員の方はこちら</a> ·{" "}
+        <a href={appUrl("/employee")}>従業員の方はこちら</a> ·{" "}
         <a href="/help/manager.html">利用手順</a>
       </p>
     </main>

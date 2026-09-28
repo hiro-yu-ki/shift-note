@@ -162,7 +162,7 @@ def employee_work(request: Request):
     state = db.get_state()
     staff = active_staff(state, sid)
     assignments = confirmed_assignments(state)
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         changes = session.scalars(select(db.ShiftChangeRequest).where(db.ShiftChangeRequest.staff == sid).order_by(db.ShiftChangeRequest.created_at.desc())).all()
         attendance = session.scalars(select(db.Attendance).where(db.Attendance.staff == sid).order_by(db.Attendance.clock_in.desc())).all()
     return {
@@ -186,7 +186,7 @@ def create_change(body: ChangeBody, request: Request):
             raise HTTPException(422, f"変更可能な時間は{state.store.step}分単位で入力してください")
         if body.proposed_start < state.store.start or body.proposed_end > state.store.end:
             raise HTTPException(422, "変更可能な時間は店舗の営業時間内にしてください")
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         session.execute(text("BEGIN IMMEDIATE"))
         pending = session.scalar(select(db.ShiftChangeRequest).where(
             db.ShiftChangeRequest.staff == sid,
@@ -214,7 +214,7 @@ class ReviewBody(BaseModel):
 
 @router.put("/api/operations/change-requests/{rid}")
 def review_change(rid: str, body: ReviewBody):
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         row = session.get(db.ShiftChangeRequest, rid)
         if not row:
             raise HTTPException(404, "申請が見つかりません")
@@ -228,7 +228,7 @@ def review_change(rid: str, body: ReviewBody):
 @router.post("/api/operations/kiosk-token")
 def rotate_kiosk_token():
     token = secrets.token_urlsafe(32)
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         row = session.get(db.KioskCredential, 1)
         if row:
             row.digest, row.created_at = hashlib.sha256(token.encode()).hexdigest(), db.now()
@@ -240,14 +240,14 @@ def rotate_kiosk_token():
 
 @router.get("/api/operations/kiosk-devices")
 def kiosk_devices():
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         return [{"id": row.digest, "label": row.label, "created_at": row.created_at, "last_seen": row.last_seen}
                 for row in session.scalars(select(db.KioskDevice).order_by(db.KioskDevice.created_at)).all()]
 
 
 @router.delete("/api/operations/kiosk-devices/{digest}")
 def revoke_kiosk_device(digest: str):
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         row = session.get(db.KioskDevice, digest)
         if not row:
             raise HTTPException(404, "端末が見つかりません")
@@ -264,7 +264,7 @@ class PairBody(BaseModel):
 @router.post("/api/kiosk/pair")
 def pair_kiosk(body: PairBody, response: Response):
     device_token = secrets.token_urlsafe(32)
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         session.execute(text("BEGIN IMMEDIATE"))
         credential = session.get(db.KioskCredential, 1)
         if not credential or not secrets.compare_digest(credential.digest, hashlib.sha256(body.token.encode()).hexdigest()):
@@ -282,7 +282,7 @@ def pair_kiosk(body: PairBody, response: Response):
 
 def kiosk_authorized(request, token=None, response=None):
     device_token = request.cookies.get(KIOSK_COOKIE, "")
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         device = session.get(db.KioskDevice, hashlib.sha256(device_token.encode()).hexdigest()) if device_token else None
         if device:
             device.last_seen = db.now()
@@ -309,7 +309,7 @@ def kiosk_today(request: Request, response: Response, x_kiosk_token: str | None 
     state = db.get_state()
     today = local_now().date()
     assignments = [a for a in confirmed_assignments(state) if a.date == today]
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         records = session.scalars(select(db.Attendance).where(db.Attendance.clock_out.is_(None))).all()
         finished = session.scalars(select(db.Attendance).where(db.Attendance.work_date == str(today), db.Attendance.clock_out.is_not(None))).all()
     active = {row.staff: row for row in records}
@@ -340,7 +340,7 @@ def clock_in(body: ClockInBody, request: Request, x_kiosk_token: str | None = He
     assignment = next((a for a in confirmed_assignments(state) if a.staff == body.staff and a.date == today), None)
     if not assignment or not active_staff(state, body.staff):
         raise HTTPException(403, "本日の確定シフトに登録されていません。管理者に確認してください")
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         session.execute(text("BEGIN IMMEDIATE"))
         if session.scalar(select(db.Attendance).where(db.Attendance.staff == body.staff, db.Attendance.clock_out.is_(None))):
             raise HTTPException(409, "すでに出勤中です")
@@ -364,7 +364,7 @@ class ClockOutBody(BaseModel):
 def clock_out(body: ClockOutBody, request: Request, x_kiosk_token: str | None = Header(default=None)):
     kiosk_authorized(request, x_kiosk_token)
     state = db.get_state()
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         session.execute(text("BEGIN IMMEDIATE"))
         row = session.get(db.Attendance, body.attendance)
         if not row or row.clock_out:
@@ -401,7 +401,7 @@ class CorrectionBody(BaseModel):
 
 @router.put("/api/operations/attendance/{aid}")
 def correct_attendance(aid: str, body: CorrectionBody):
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         row = session.get(db.Attendance, aid)
         if not row:
             raise HTTPException(404, "打刻が見つかりません")
@@ -422,7 +422,7 @@ def operations_overview():
     state = db.get_state()
     assignments = confirmed_assignments(state)
     today = local_now().date()
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         changes = session.scalars(select(db.ShiftChangeRequest).order_by(db.ShiftChangeRequest.created_at.desc())).all()
         attendance = session.scalars(select(db.Attendance).order_by(db.Attendance.clock_in.desc())).all()
         kiosk_ready = bool(session.get(db.KioskCredential, 1) or session.scalar(select(db.KioskDevice.digest).limit(1)))

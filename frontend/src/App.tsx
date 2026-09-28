@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import {
   api,
+  appUrl,
   uid,
   hm,
   weekdays,
@@ -48,7 +49,7 @@ const navigation = [
 ] as const;
 
 export default function App() {
-  if (location.pathname === "/admin/employee-preview") {
+  if (appUrl("/admin/employee-preview") === location.pathname) {
     const query = new URLSearchParams(location.search);
     return (
       <ManagerAccess>
@@ -304,8 +305,8 @@ function Manager() {
             「スタッフ」で {s.name}{" "}
             さんのメールアドレスを登録してください。本人が確認コードでログインします。
           </p>
-          <a href="/employee" target="_blank" rel="noreferrer">
-            {location.origin}/employee
+          <a href={appUrl("/employee")} target="_blank" rel="noreferrer">
+            {location.origin}{appUrl("/employee")}
           </a>
         </Modal>,
       );
@@ -315,7 +316,7 @@ function Manager() {
       `/periods/${period!.id}/tokens/${s.id}`,
       "POST",
     );
-    const url = location.origin + "/#token=" + result.token;
+    const url = location.origin + appUrl("/") + "#token=" + result.token;
     M(
       <Modal title={s.name + " の提出URL"} onClose={() => M(null)}>
         <p>

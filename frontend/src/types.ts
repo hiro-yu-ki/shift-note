@@ -249,13 +249,17 @@ export const dates = (p: Period) => {
   }
   return result;
 };
+export const tenantBase = () =>
+  location.pathname.match(/^\/s\/[a-z][a-z0-9-]{2,30}(?=\/|$)/)?.[0] || "";
+export const appUrl = (path: string) => tenantBase() + path;
+
 export async function api<T>(
   path: string,
   method = "GET",
   body?: unknown,
   token?: string,
 ): Promise<T> {
-  const r = await fetch("/api" + path, {
+  const r = await fetch(appUrl("/api" + path), {
     method,
     headers: {
       "Content-Type": "application/json",

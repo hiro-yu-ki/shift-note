@@ -1,10 +1,12 @@
 import os
 from datetime import datetime, timezone
+from functools import lru_cache
 
 from fastapi import HTTPException
 from sqlalchemy import JSON, Integer, String, create_engine, update
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
+from . import tenant
 from .schema import State
 
 engine = create_engine(
@@ -12,6 +14,20 @@ engine = create_engine(
     connect_args={"check_same_thread": False, "timeout": 30},
     hide_parameters=True,
 )
+
+
+@lru_cache(maxsize=256)
+def tenant_engine(mid: str):
+    return create_engine(
+        "sqlite:///" + tenant.tenant_db_path(mid).as_posix(),
+        connect_args={"check_same_thread": False, "timeout": 30},
+        hide_parameters=True,
+    )
+
+
+def current_engine():
+    mid = tenant.merchant_id.get()
+    return tenant_engine(mid) if mid else engine
 
 
 class Base(DeclarativeBase):
@@ -140,14 +156,14 @@ def now():
 
 
 def get_state():
-    with Session(engine) as db:
+    with Session(current_engine()) as db:
         row = db.get(Snapshot, 1)
         return State.model_validate(row.data) if row else State()
 
 
 def save(state, action):
     # Compare-and-swap is performed inside SQLite, never a read-then-write check.
-    with Session(engine) as db:
+    with Session(current_engine()) as db:
         expected = state.version
         state.version += 1
         body = state.model_dump(mode="json")

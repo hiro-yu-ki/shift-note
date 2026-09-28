@@ -3,10 +3,13 @@ import hashlib
 import io
 import json
 import logging
+import re
 import secrets
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import asynccontextmanager
+from contextvars import copy_context
 from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -17,10 +20,10 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from . import db
+from . import db, platform, tenant
 from .auth import authenticated
 from .auth import router as auth_router
 from .breaks import paid_minutes
@@ -33,16 +36,26 @@ from .engine import PRESETS, preflight_check, solve, validate
 from .operations import router as operations_router
 from .optimizer import SchedulingError
 from .payroll import employee_pay, estimate, labor_cost
+from .platform import router as platform_router
 from .schema import Assignment, State, Store, Submission
 from .seed import demo
 
 validate_config()
+
+
+@asynccontextmanager
+async def lifespan(_app):
+    platform.init_db()
+    yield
+
+
 app = FastAPI(
     title="シフトノート API",
-    version="1.3.1",
+    version="1.4.0",
     docs_url=None if production() else "/docs",
     redoc_url=None if production() else "/redoc",
     openapi_url=None if production() else "/openapi.json",
+    lifespan=lifespan,
 )
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts())
 app.include_router(auth_router)
@@ -50,6 +63,7 @@ app.include_router(employee_router)
 app.include_router(demand_router)
 app.include_router(conditions_router)
 app.include_router(operations_router)
+app.include_router(platform_router)
 generation_lock = threading.Lock()
 jobs_lock = threading.Lock()
 generation_jobs = {}
@@ -67,7 +81,7 @@ async def same_origin(request: Request, call_next):
         return JSONResponse({"detail": "このアクセス元は許可されていません"}, status_code=403)
     if (
         path.startswith("/api/")
-        and not path.startswith(("/api/auth/", "/api/employee/", "/api/kiosk/"))
+        and not path.startswith(("/api/auth/", "/api/employee/", "/api/kiosk/", "/api/platform/"))
         and path != "/api/portal"
     ):
         if not authenticated(request):
@@ -87,6 +101,38 @@ async def same_origin(request: Request, call_next):
     if production():
         response.headers["Strict-Transport-Security"] = "max-age=31536000"
     return response
+
+
+@app.middleware("http")
+async def tenant_scope(request: Request, call_next):
+    match = re.match(r"^/s/([a-z][a-z0-9-]{2,30})(/.*)?$", request.scope["path"])
+    if not match:
+        return await call_next(request)
+    slug = match.group(1)
+    with Session(platform.engine) as session:
+        merchant = session.scalar(select(platform.Merchant).where(platform.Merchant.slug == slug))
+        if not merchant:
+            return JSONResponse({"detail": "加盟店が見つかりません"}, status_code=404)
+        if merchant.deployment_status != "稼働中" or merchant.status not in ("試用中", "利用中"):
+            return JSONResponse({"detail": "この加盟店の利用は停止されています"}, status_code=403)
+        mid = merchant.id
+    request.scope["path"] = match.group(2) or "/admin"
+    if request.scope["path"].startswith(("/api/platform/", "/platform")):
+        return JSONResponse({"detail": "この画面は加盟店URLでは利用できません"}, status_code=404)
+    id_token = tenant.merchant_id.set(mid)
+    slug_token = tenant.merchant_slug.set(slug)
+    try:
+        response = await call_next(request)
+        prefix = f"/s/{slug}".encode()
+        response.raw_headers = [
+            (key, value.replace(b"Path=/api", b"Path=" + prefix + b"/api"))
+            if key.lower() == b"set-cookie" else (key, value)
+            for key, value in response.raw_headers
+        ]
+        return response
+    finally:
+        tenant.merchant_slug.reset(slug_token)
+        tenant.merchant_id.reset(id_token)
 
 
 @app.exception_handler(RequestValidationError)
@@ -381,7 +427,7 @@ def start_generation(pid: str, body: Generate):
     with jobs_lock:
         for job in generation_jobs.values():
             if job["status"] == "running":
-                if job["period"] == pid:
+                if job["period"] == pid and job.get("merchant_id") == tenant.merchant_id.get():
                     return job.copy()
                 raise HTTPException(409, "別の期間を作成中です。完了を待ってください")
         if not generation_lock.acquire(blocking=False):
@@ -389,6 +435,7 @@ def start_generation(pid: str, body: Generate):
         job_id = secrets.token_hex(12)
         job = {
             "id": job_id,
+            "merchant_id": tenant.merchant_id.get(),
             "period": pid,
             "status": "running",
             "message": "条件を確認しています",
@@ -421,14 +468,14 @@ def start_generation(pid: str, body: Generate):
         finally:
             generation_lock.release()
 
-    generation_pool.submit(work)
+    generation_pool.submit(copy_context().run, work)
     return job.copy()
 
 
 @app.get("/api/generation-jobs/{job_id}")
 def generation_status(job_id: str):
     job = generation_jobs.get(job_id)
-    if not job:
+    if not job or job.get("merchant_id") != tenant.merchant_id.get():
         raise HTTPException(404, "作成処理が見つかりません。サーバー再起動後は再作成してください")
     return job.copy()
 
@@ -534,7 +581,7 @@ def token(pid: str, sid: str):
     if not any(s.id == sid and s.active for s in state.staff):
         raise HTTPException(404, "在籍中のスタッフが見つかりません")
     token = secrets.token_urlsafe(32)
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         session.execute(
             delete(db.ShareToken).where(db.ShareToken.staff == sid, db.ShareToken.period == pid)
         )
@@ -555,7 +602,7 @@ def scope(token):
         raise HTTPException(401, "メール認証で従業員画面にログインしてください")
     if not token:
         raise HTTPException(401, "提出URLを確認してください")
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         row = session.get(db.ShareToken, hashlib.sha256(token.encode()).hexdigest())
         if not row:
             raise HTTPException(404, "提出URLが無効です。店長に再発行を依頼してください")
@@ -707,7 +754,7 @@ def export(cid: str):
 
 @app.get("/api/audit")
 def audit():
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         return [
             {"action": a.action, "created_at": a.created_at, "version": a.version}
             for a in session.query(db.AuditLog).order_by(db.AuditLog.id.desc()).limit(100)
@@ -719,16 +766,17 @@ dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 @app.get("/healthz")
 def health():
-    with Session(db.engine) as session:
+    with Session(db.current_engine()) as session:
         if not session.get(db.Snapshot, 1):
             raise HTTPException(503, "Database unavailable")
-    return {"status": "ok", "version": "1.3.1"}
+    return {"status": "ok", "version": "1.4.0"}
 
 
 @app.get("/admin")
 @app.get("/admin/employee-preview")
 @app.get("/employee")
 @app.get("/clock")
+@app.get("/platform")
 def entry():
     return FileResponse(dist / "index.html")
 

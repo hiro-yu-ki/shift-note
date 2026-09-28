@@ -3,14 +3,18 @@ import ReactDOM from "react-dom/client";
 const App = lazy(() => import("./App"));
 const EmployeeAccess = lazy(() => import("./EmployeeAccess"));
 const ClockKiosk = lazy(() => import("./ClockKiosk"));
+const Platform = lazy(() => import("./Platform"));
 import "./style.css";
 import "./redesign.css";
+const appPath = location.pathname.replace(/^\/s\/[a-z][a-z0-9-]{2,30}(?=\/|$)/, "").replace(/\/$/, "");
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Suspense fallback={<p>読み込んでいます…</p>}>
-      {location.pathname.replace(/\/$/, "") === "/clock" ? (
+      {appPath === "/platform" ? (
+        <Platform />
+      ) : appPath === "/clock" ? (
         <ClockKiosk />
-      ) : location.pathname.replace(/\/$/, "") === "/employee" ? (
+      ) : appPath === "/employee" ? (
         <EmployeeAccess />
       ) : (
         <App />

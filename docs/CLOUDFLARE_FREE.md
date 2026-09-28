@@ -1,5 +1,7 @@
 # Cloudflare無料公開の運用手順
 
+1.4.0から運営者入口は `/platform` です。加盟店の追加、専用URLの自動発行、手動請求と入金記録は [PLATFORM.md](PLATFORM.md) を参照してください。加盟店のURLは `/s/<加盟店ID>/admin`、`/employee`、`/clock` となります。既存のルート `/admin` 等は従来の単一店舗用として残します。
+
 公開URLは **https://shift-note.yuki-nova.workers.dev** です。管理者は `/admin`、従業員は `/employee` を開きます。Cloudflare Worker → Workers VPC Service → 名前付きTunnel → このWindows PCのアプリ、の順につながります。独自ドメインは不要です。WorkerとVPC Serviceは現在Cloudflareの無料枠・オープンベータで利用しています。ベータ終了後の料金・仕様は変わり得ます。
 
 アプリ本体、OR-Tools、SQLiteはこのPCで実行します。**PCを停止・スリープすると公開URLも利用できません。** Cloudflareだけで24時間稼働するサーバーを無料で確保した構成ではありません。公開DBは `%LOCALAPPDATA%\ShiftNote\cloudflare-preview\shift.db` にあり、作業フォルダー直下の `shift.db` とは別です。

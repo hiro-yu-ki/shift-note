@@ -34,6 +34,15 @@ def validate_config():
     windows_absolute = os.name == "nt" and re.match(r"^sqlite:///[A-Za-z]:/", database_url)
     if not database_url.startswith("sqlite:////") and not windows_absolute:
         raise RuntimeError("Production requires an absolute SQLite path on a persistent disk")
+    platform_url = os.getenv("SHIFT_PLATFORM_DB", "")
+    platform_windows_absolute = os.name == "nt" and re.match(r"^sqlite:///[A-Za-z]:/", platform_url)
+    if (not platform_url.startswith("sqlite:////") and not platform_windows_absolute) or platform_url == database_url:
+        raise RuntimeError("Production requires a separate absolute platform database")
+    if len(os.getenv("SHIFT_PLATFORM_SETUP_TOKEN", "")) < 32:
+        raise RuntimeError("SHIFT_PLATFORM_SETUP_TOKEN must contain at least 32 characters")
+    tenant_root = os.getenv("SHIFT_TENANT_ROOT", "")
+    if not (tenant_root.startswith("/") or os.name == "nt" and re.match(r"^[A-Za-z]:[\\/]", tenant_root)):
+        raise RuntimeError("SHIFT_TENANT_ROOT must be an absolute directory")
 
 
 def allowed_hosts():

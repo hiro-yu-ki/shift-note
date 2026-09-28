@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, dateLabel, hm, yen, type ActualPay, type AttendanceRecord, type ShiftChangeRequest } from "./types";
+import { api, appUrl, dateLabel, hm, yen, type ActualPay, type AttendanceRecord, type ShiftChangeRequest } from "./types";
 
 type Overview = {
   date: string;
@@ -50,10 +50,10 @@ export function Operations() {
     <section className="operations-section">
       <h2>店舗の打刻画面</h2>
       <p>店舗の端末を最初に一度だけ登録します。その後は固定URLを開くだけで、毎日の出勤者が自動で切り替わります。</p>
-      <p><a href="/clock" target="_blank" rel="noreferrer">固定の打刻画面を開く ↗</a> <span className="muted">{location.origin}/clock</span></p>
+      <p><a href={appUrl("/clock")} target="_blank" rel="noreferrer">固定の打刻画面を開く ↗</a> <span className="muted">{location.origin}{appUrl("/clock")}</span></p>
       <button onClick={() => void run(async () => {
         const result = await api<{ token: string }>("/operations/kiosk-token", "POST");
-        setLink(`${location.origin}/clock#token=${encodeURIComponent(result.token)}`);
+        setLink(`${location.origin}${appUrl("/clock")}#token=${encodeURIComponent(result.token)}`);
         setNotice("端末登録リンクを作成しました。打刻用の端末で一度だけ開いてください");
       })}>端末登録リンクを作る</button>
       {link && <div className="kiosk-link"><a href={link} target="_blank" rel="noreferrer">この端末を登録 ↗</a><button onClick={() => void navigator.clipboard.writeText(link).then(() => setNotice("登録リンクをコピーしました"))}>登録リンクをコピー</button></div>}

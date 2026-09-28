@@ -18,9 +18,12 @@ if hasattr(os, "getuid") and os.getuid() == 0:
     data.mkdir(exist_ok=True)
     os.chown(data, 10001, 10001)
     os.chmod(data, 0o700)
-    database = data / "shift.db"
-    if database.exists():
-        os.chown(database, 10001, 10001)
+    tenants = data / "tenants"
+    tenants.mkdir(exist_ok=True)
+    os.chown(tenants, 10001, 10001)
+    for database in (data / "shift.db", data / "platform.db"):
+        if database.exists():
+            os.chown(database, 10001, 10001)
     os.setgroups([])
     os.setgid(10001)
     os.setuid(10001)
