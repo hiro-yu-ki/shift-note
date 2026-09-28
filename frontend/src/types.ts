@@ -164,6 +164,59 @@ export type PayEstimate = {
   transport: number;
   hourly_rate: number | null;
 };
+export type ShiftChangeRequest = {
+  id: string;
+  staff: string;
+  assignment: string;
+  date: string;
+  start: number;
+  end: number;
+  kind: string;
+  reason: string;
+  proposed_start: number | null;
+  proposed_end: number | null;
+  status: string;
+  manager_note: string;
+  created_at: string;
+  updated_at: string;
+};
+export type AttendanceRecord = {
+  id: string;
+  staff: string;
+  date: string;
+  assignment: string;
+  clock_in: string;
+  clock_out: string | null;
+  break_minutes: number;
+  break_confirmed: boolean;
+  break_required: number;
+  paid_hours: number;
+  gross: number | null;
+  correction_reason: string;
+  needs_review: boolean;
+};
+export type ActualPay = {
+  staff: string;
+  name: string;
+  start: string;
+  end: string;
+  payday: string;
+  actual_hours: number;
+  actual_days: number;
+  actual_wage: number | null;
+  actual_transport: number;
+  actual_total: number | null;
+  forecast_hours: number;
+  forecast_total: number | null;
+  unreviewed_breaks: number;
+};
+export type MyWork = {
+  assignments: Assignment[];
+  requests: ShiftChangeRequest[];
+  attendance: AttendanceRecord[];
+  pay: ActualPay;
+  roles: Role[];
+};
 export const yen = (n: number) =>
   new Intl.NumberFormat("ja-JP", {
     style: "currency",

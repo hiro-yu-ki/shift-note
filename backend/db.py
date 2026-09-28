@@ -88,6 +88,45 @@ class AuthRate(Base):
     count: Mapped[int] = mapped_column(Integer)
 
 
+class ShiftChangeRequest(Base):
+    __tablename__ = "shift_change_request"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    staff: Mapped[str] = mapped_column(String, index=True)
+    assignment: Mapped[str] = mapped_column(String)
+    shift_date: Mapped[str] = mapped_column(String)
+    shift_start: Mapped[int] = mapped_column(Integer)
+    shift_end: Mapped[int] = mapped_column(Integer)
+    kind: Mapped[str] = mapped_column(String)
+    reason: Mapped[str] = mapped_column(String)
+    proposed_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    proposed_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    status: Mapped[str] = mapped_column(String, default="未確認")
+    manager_note: Mapped[str] = mapped_column(String, default="")
+    created_at: Mapped[str] = mapped_column(String)
+    updated_at: Mapped[str] = mapped_column(String)
+
+
+class KioskCredential(Base):
+    __tablename__ = "kiosk_credential"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    digest: Mapped[str] = mapped_column(String)
+    created_at: Mapped[str] = mapped_column(String)
+
+
+class Attendance(Base):
+    __tablename__ = "attendance"
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    staff: Mapped[str] = mapped_column(String, index=True)
+    work_date: Mapped[str] = mapped_column(String, index=True)
+    assignment: Mapped[str] = mapped_column(String)
+    clock_in: Mapped[str] = mapped_column(String)
+    clock_out: Mapped[str | None] = mapped_column(String, nullable=True)
+    break_minutes: Mapped[int] = mapped_column(Integer, default=0)
+    break_confirmed: Mapped[int] = mapped_column(Integer, default=0)
+    correction_reason: Mapped[str] = mapped_column(String, default="")
+    updated_at: Mapped[str] = mapped_column(String)
+
+
 def now():
     return datetime.now(timezone.utc).isoformat()
 

@@ -30,14 +30,14 @@ for name in ("Dockerfile", ".dockerignore", "alembic.ini", ".env.example", "THIR
 if not (root / "frontend/dist/index.html").is_file():
     raise SystemExit("Build the frontend first")
 manifest = {name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in sorted(files)}
-manager = out / "shift-note-1.2.0-manager.zip"
+manager = out / "shift-note-1.3.0-manager.zip"
 with ZipFile(manager, "w", ZIP_DEFLATED) as z:
     for name in sorted(files):
         assert not name.endswith((".db", ".db-wal", ".db-shm")) and name != ".env"
         z.write(root / name, name)
     z.writestr("MANIFEST.sha256.json", json.dumps(manifest, indent=2))
-    z.writestr("README.md", "# シフトノート 1.2.0 管理者用\n\n公開URLは https://shift-note.yuki-nova.workers.dev です。運用は docs/CLOUDFLARE_FREE.md、確認結果は docs/RELEASE_CHECK.md を読んでください。\n管理者は /admin、従業員は /employee です。既存DBや秘密値は含みません。\nWorkerとWorkers VPCは現在無料のオープンベータです。PCの稼働とGmail設定が必要です。\nローカル起動は scripts/setup.ps1、scripts/start.ps1 を使います（Python 3.13 64bit、Node.js 24）。\n")
-employee = out / "shift-note-1.2.0-employee.zip"
+    z.writestr("README.md", "# シフトノート 1.3.0 管理者用\n\n公開URLは https://shift-note.yuki-nova.workers.dev です。運用は docs/CLOUDFLARE_FREE.md、確認結果は docs/RELEASE_CHECK.md を読んでください。\n管理者は /admin、従業員は /employee、店舗の打刻画面は管理者が発行した /clock のリンクから開きます。既存DBや秘密値は含みません。\nWorkerとWorkers VPCは現在無料のオープンベータです。PCの稼働とGmail設定が必要です。\nローカル起動は scripts/setup.ps1、scripts/start.ps1 を使います（Python 3.13 64bit、Node.js 24）。\n")
+employee = out / "shift-note-1.3.0-employee.zip"
 with ZipFile(employee, "w", ZIP_DEFLATED) as z:
     manual = (root / "frontend/public/help/employee.html").read_text(encoding="utf-8")
     manual = manual.replace('href="/employee"', f'href="{origin}/employee"' if origin else 'href="#login"')

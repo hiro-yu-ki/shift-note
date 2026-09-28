@@ -30,6 +30,7 @@ from .demand import router as demand_router
 from .employee_auth import employee_id
 from .employee_auth import router as employee_router
 from .engine import PRESETS, preflight_check, solve, validate
+from .operations import router as operations_router
 from .optimizer import SchedulingError
 from .payroll import employee_pay, estimate, labor_cost
 from .schema import Assignment, State, Store, Submission
@@ -38,7 +39,7 @@ from .seed import demo
 validate_config()
 app = FastAPI(
     title="シフトノート API",
-    version="1.2.0",
+    version="1.3.0",
     docs_url=None if production() else "/docs",
     redoc_url=None if production() else "/redoc",
     openapi_url=None if production() else "/openapi.json",
@@ -48,6 +49,7 @@ app.include_router(auth_router)
 app.include_router(employee_router)
 app.include_router(demand_router)
 app.include_router(conditions_router)
+app.include_router(operations_router)
 generation_lock = threading.Lock()
 jobs_lock = threading.Lock()
 generation_jobs = {}
@@ -65,7 +67,7 @@ async def same_origin(request: Request, call_next):
         return JSONResponse({"detail": "このアクセス元は許可されていません"}, status_code=403)
     if (
         path.startswith("/api/")
-        and not path.startswith(("/api/auth/", "/api/employee/"))
+        and not path.startswith(("/api/auth/", "/api/employee/", "/api/kiosk/"))
         and path != "/api/portal"
     ):
         if not authenticated(request):
@@ -720,12 +722,13 @@ def health():
     with Session(db.engine) as session:
         if not session.get(db.Snapshot, 1):
             raise HTTPException(503, "Database unavailable")
-    return {"status": "ok", "version": "1.2.0"}
+    return {"status": "ok", "version": "1.3.0"}
 
 
 @app.get("/admin")
 @app.get("/admin/employee-preview")
 @app.get("/employee")
+@app.get("/clock")
 def entry():
     return FileResponse(dist / "index.html")
 

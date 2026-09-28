@@ -35,6 +35,7 @@ import { EmployeeAccounts } from "./EmployeeAccounts";
 import { ManagerAccess } from "./ManagerAccess";
 import { DemandProposal } from "./DemandProposal";
 import { TimeUnit } from "./ui";
+import { Operations } from "./Operations";
 
 const navigation = [
   ["overview", "概要", LayoutDashboard],
@@ -42,6 +43,7 @@ const navigation = [
   ["requirements", "必要人数・役割", SlidersHorizontal],
   ["submissions", "希望の提出状況", ClipboardCheck],
   ["schedule", "シフト案", CalendarDays],
+  ["operations", "勤怠・変更申請", Clock3],
   ["settings", "店舗設定", Settings],
 ] as const;
 
@@ -520,13 +522,15 @@ function Manager() {
                           ? "提出状況の確認と、希望の代理入力ができます。"
                           : view === "schedule"
                             ? "希望と店舗の条件をもとに作成した案を比較・調整します。"
+                            : view === "operations"
+                              ? "勤務変更の相談、打刻、実績の人件費を確認します。"
                             : "営業時間と、店舗の基本情報を管理します。"}
                 </p>
               </div>
-              <button className="no-print" onClick={() => periodEditor()}>
+              {view !== "operations" && <button className="no-print" onClick={() => periodEditor()}>
                 <Plus size={16} />
                 期間を作成
-              </button>
+              </button>}
             </div>
             {error && (
               <div className="error" role="alert">
@@ -548,7 +552,7 @@ function Manager() {
                 シフト案を作成しています。条件が多い場合はしばらくお待ちください。
               </div>
             )}
-            {period && view !== "settings" && (
+            {period && view !== "settings" && view !== "operations" && (
               <div className="period-bar">
                 <div>
                   <span className="eyebrow">対象期間</span>
@@ -1317,6 +1321,7 @@ function Manager() {
             {view === "settings" && (
               <StoreSettings state={state} save={save} run={run} />
             )}
+            {view === "operations" && <Operations />}
           </main>
           <div className="app-footer no-print">
             シフトノート <span>店舗のための、シンプルなシフト管理</span>

@@ -13,6 +13,7 @@ import {
 import { SubmissionForm } from "./SubmissionForm";
 import { MonthCalendar } from "./MonthCalendar";
 import { Modal } from "./ui";
+import { WorkHub } from "./WorkHub";
 
 type EmployeeData = Portal & {
   pay: PayEstimate & {
@@ -93,12 +94,16 @@ export function Employee({
               >
                 確定シフト
               </button>
+              {!previewStaff && !token && <>
+                <button className={view === "work" ? "active" : ""} onClick={() => V("work")}>勤務日・変更相談</button>
+                <button className={view === "attendance" ? "active" : ""} onClick={() => V("attendance")}>勤務実績・給与</button>
+              </>}
             </nav>
             <div className="employee-title">
               <div>
                 <p className="section-kicker">{data.staff.name}さん</p>
                 <h1>
-                  {view === "request" ? "シフト希望を入力" : "確定したシフト"}
+                  {view === "request" ? "シフト希望を入力" : view === "confirmed" ? "確定したシフト" : view === "work" ? "勤務日と変更相談" : "勤務実績と給与"}
                 </h1>
               </div>
               <span>
@@ -254,6 +259,7 @@ export function Employee({
                 </button>
               </footer>
             </section>
+            {(view === "work" || view === "attendance") && <WorkHub view={view} />}
           </>
         )}
       </main>

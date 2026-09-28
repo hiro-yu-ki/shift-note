@@ -72,6 +72,11 @@ test("管理者がメール登録し従業員が本人だけの画面にログ�
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBeTruthy();
+  await crew.getByRole("button", { name: "勤務日・変更相談" }).click();
+  await expect(crew.getByRole("heading", { name: "これからの勤務" })).toBeVisible();
+  await crew.getByRole("button", { name: "勤務実績・給与" }).click();
+  await expect(crew.getByRole("heading", { name: "打刻の記録" })).toBeVisible();
+  expect(await crew.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
   await crew.getByRole("button", { name: "ログアウト" }).click();
   await expect(
     crew.getByRole("heading", { name: "シフトを確認する" }),
