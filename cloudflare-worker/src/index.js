@@ -16,14 +16,22 @@ export default {
     headers.delete("cf-connecting-ip");
     headers.delete("x-forwarded-host");
     headers.delete("x-forwarded-proto");
-    const response = await env.SHIFT_BACKEND.fetch(
-      new Request(target, {
-        method: request.method,
-        headers,
-        body: request.body,
-        redirect: "manual",
-      }),
-    );
+    let response;
+    try {
+      response = await env.SHIFT_BACKEND.fetch(
+        new Request(target, {
+          method: request.method,
+          headers,
+          body: request.body,
+          redirect: "manual",
+        }),
+      );
+    } catch {
+      return new Response(JSON.stringify({ detail: "サーバーに接続できません。少し待ってから再試行してください" }), {
+        status: 503,
+        headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    }
     const result = new Response(response.body, response);
     result.headers.set("Cache-Control", "no-store");
     return result;

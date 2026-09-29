@@ -31,7 +31,7 @@ async function papi<T>(path: string, method = "GET", body?: unknown): Promise<T>
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.errors?.map((e: { message: string }) => e.message).join(" / ") || data.detail || "処理に失敗しました");
+  if (!response.ok) throw new Error(data.errors?.map((e: { message: string }) => e.message).join(" / ") || data.detail || (response.status >= 500 ? "サーバーに接続できません。少し待ってから再試行してください" : "処理に失敗しました"));
   return data as T;
 }
 

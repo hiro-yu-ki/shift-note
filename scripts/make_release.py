@@ -24,7 +24,7 @@ for directory in ("backend", "frontend/src", "frontend/public", "frontend/dist",
             files.add(p.relative_to(root).as_posix())
 for name in ("Dockerfile", ".dockerignore", "alembic.ini", ".env.example", "THIRD_PARTY_NOTICES.md", "pyproject.toml",
              "frontend/package.json", "frontend/package-lock.json", "frontend/index.html", "frontend/tsconfig.json", "frontend/tsconfig.app.json", "frontend/tsconfig.node.json", "frontend/vite.config.ts", "frontend/eslint.config.js",
-             "scripts/serve_release.py", "scripts/configure-gmail.ps1", "scripts/get-cloudflared.ps1", "scripts/start-cloudflare-preview.ps1", "scripts/backup.py", "scripts/backup_suite.py", "scripts/restore_copy.py", "scripts/start.ps1", "scripts/setup.ps1"):
+             "scripts/serve_release.py", "scripts/configure-gmail.ps1", "scripts/get-cloudflared.ps1", "scripts/start-cloudflare-preview.ps1", "scripts/register-cloudflare-autostart.ps1", "scripts/backup.py", "scripts/backup_suite.py", "scripts/restore_copy.py", "scripts/start.ps1", "scripts/setup.ps1"):
     if (root / name).is_file():
         files.add(name)
 if not (root / "frontend/dist/index.html").is_file():

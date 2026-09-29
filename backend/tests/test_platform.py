@@ -26,6 +26,27 @@ def merchant(slug):
     }
 
 
+def test_production_operator_setup_key(tmp_path, monkeypatch):
+    engine = setup_platform(tmp_path, monkeypatch)
+    monkeypatch.setattr(platform, "production", lambda: True)
+    monkeypatch.setenv("SHIFT_PLATFORM_SETUP_TOKEN", "test-secret-operator-setup-token-123456")
+    try:
+        with TestClient(app, base_url="https://testserver") as operator:
+            wrong = operator.post("/api/platform/auth/setup", json={
+                "password": "operator-password-123", "setup_token": "wrong-token",
+            })
+            assert wrong.status_code == 403
+            assert operator.get("/api/platform/auth/status").json()["configured"] is False
+            correct = operator.post("/api/platform/auth/setup", json={
+                "password": "operator-password-123", "setup_token": "test-secret-operator-setup-token-123456",
+            })
+            assert correct.status_code == 200
+            assert operator.get("/api/platform/auth/status").json()["authenticated"] is True
+    finally:
+        db.tenant_engine.cache_clear()
+        engine.dispose()
+
+
 def test_operator_provisions_isolated_suites_and_bills(tmp_path, monkeypatch):
     engine = setup_platform(tmp_path, monkeypatch)
     try:

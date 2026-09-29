@@ -1,5 +1,9 @@
 # Cloudflare無料公開の運用手順
 
+## 接続が止まったとき
+
+この構成は運営PC上のアプリとCloudflare Tunnelの両方が起動している必要があります。どちらかが止まると初回設定を含むAPIが失敗し、パスワードや初回設定キーの照合も行われません。`/api/platform/auth/status` が200を返すことを先に確認してください。2026-09-30に現在のWindowsユーザーのサインイン時に2つを自動起動するタスクを登録しました。再登録する場合は `scripts/register-cloudflare-autostart.ps1` を実行します。PCがスリープ中、電源オフ、または再起動後にサインインしていない間は公開URLを利用できません。
+
 1.4.0から運営者入口は `/platform` です。加盟店の追加、専用URLの自動発行、手動請求と入金記録は [PLATFORM.md](PLATFORM.md) を参照してください。加盟店のURLは `/s/<加盟店ID>/admin`、`/employee`、`/clock` となります。既存のルート `/admin` 等は従来の単一店舗用として残します。
 
 公開URLは **https://shift-note.yuki-nova.workers.dev** です。管理者は `/admin`、従業員は `/employee` を開きます。Cloudflare Worker → Workers VPC Service → 名前付きTunnel → このWindows PCのアプリ、の順につながります。独自ドメインは不要です。WorkerとVPC Serviceは現在Cloudflareの無料枠・オープンベータで利用しています。ベータ終了後の料金・仕様は変わり得ます。
