@@ -16,7 +16,7 @@ with sqlite3.connect(f"file:{args.backup.resolve().as_posix()}?mode=ro", uri=Tru
     with sqlite3.connect(args.destination) as dst:
         src.backup(dst)
         tables = {r[0] for r in dst.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-        for table in ("manager_session", "employee_session", "email_challenge", "share_token"):
+        for table in ("manager_session", "manager_setup_link", "employee_session", "email_challenge", "share_token"):
             if table in tables:
                 dst.execute(f"DELETE FROM {table}")
         dst.commit()

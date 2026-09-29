@@ -136,6 +136,25 @@ def init_db():
                 connection.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} VARCHAR NOT NULL DEFAULT ''"))
 
 
+def migrate_tenants():
+    """Upgrade existing merchant databases before accepting requests."""
+    from alembic import command
+    from alembic.config import Config
+
+    from . import db
+
+    with Session(engine) as session:
+        mids = session.scalars(select(Merchant.id).where(Merchant.deployment_status == "稼働中")).all()
+    for mid in mids:
+        path = tenant.tenant_db_path(mid)
+        if not path.is_file():
+            raise RuntimeError(f"Merchant database is missing: {mid}")
+        config = Config(str(Path(__file__).resolve().parent.parent / "alembic.ini"))
+        with db.tenant_engine(mid).connect() as connection:
+            config.attributes["connection"] = connection
+            command.upgrade(config, "head")
+
+
 def now():
     return datetime.now(timezone.utc).isoformat()
 
@@ -689,6 +708,7 @@ def reset_merchant_manager(mid: str):
                 store_session.delete(auth)
             for row in store_session.scalars(select(db.ManagerSession)):
                 store_session.delete(row)
+            store_session.execute(delete(db.ManagerSetupLink))
             store_session.commit()
         merchant.setup_token_digest = hashlib.sha256(token.encode()).hexdigest()
         merchant.updated_at = now()

@@ -46,12 +46,13 @@ validate_config()
 @asynccontextmanager
 async def lifespan(_app):
     platform.init_db()
+    platform.migrate_tenants()
     yield
 
 
 app = FastAPI(
     title="シフトノート API",
-    version="1.4.0",
+    version="1.5.0",
     docs_url=None if production() else "/docs",
     redoc_url=None if production() else "/redoc",
     openapi_url=None if production() else "/openapi.json",
@@ -769,7 +770,7 @@ def health():
     with Session(db.current_engine()) as session:
         if not session.get(db.Snapshot, 1):
             raise HTTPException(503, "Database unavailable")
-    return {"status": "ok", "version": "1.4.0"}
+    return {"status": "ok", "version": "1.5.0"}
 
 
 @app.get("/admin")

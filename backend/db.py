@@ -62,6 +62,7 @@ class ManagerAuth(Base):
     __tablename__ = "manager_auth"
     id: Mapped[int] = mapped_column(primary_key=True)
     password_hash: Mapped[str] = mapped_column(String)
+    email: Mapped[str] = mapped_column(String, default="")
     failures: Mapped[int] = mapped_column(Integer, default=0)
     blocked_until: Mapped[str] = mapped_column(String, default="")
 
@@ -69,6 +70,13 @@ class ManagerAuth(Base):
 class ManagerSession(Base):
     __tablename__ = "manager_session"
     digest: Mapped[str] = mapped_column(String, primary_key=True)
+    expires: Mapped[str] = mapped_column(String)
+
+
+class ManagerSetupLink(Base):
+    __tablename__ = "manager_setup_link"
+    digest: Mapped[str] = mapped_column(String, primary_key=True)
+    email: Mapped[str] = mapped_column(String)
     expires: Mapped[str] = mapped_column(String)
 
 

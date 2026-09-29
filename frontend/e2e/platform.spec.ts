@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 test("運営者が加盟店の3画面を作り、請求と入金を管理する", async ({ page, browser }) => {
   const errors: string[] = [];
@@ -19,15 +20,31 @@ test("運営者が加盟店の3画面を作り、請求と入金を管理する"
   await page.getByRole("button", { name: "専用環境を作成" }).click();
   await expect(page.getByRole("heading", { name: "管理者の初回設定キー" })).toBeVisible();
   await expect(page.getByRole("link", { name: "従業員画面 ↗" })).toHaveAttribute("href", /\/s\/alpha-shop\/employee$/);
+  const setupKey = (await page.locator(".platform-setup-key code").textContent())!.trim();
   await page.getByRole("button", { name: "表示を閉じる" }).click();
   const context = await browser.newContext();
   const manager = await context.newPage();
   await manager.goto("/s/alpha-shop/admin");
-  await expect(manager.getByRole("heading", { name: "管理画面の保護を設定" })).toBeVisible();
-  await manager.getByLabel("管理者パスワード", { exact: true }).fill("merchant-password-123");
-  await manager.getByLabel("パスワードをもう一度").fill("merchant-password-123");
-  await manager.getByRole("button", { name: "パスワードを設定" }).click();
-  await expect(manager.getByRole("heading", { name: "店舗のシフト管理を始める" })).toBeVisible();
+  await expect(manager.getByRole("heading", { name: "管理者のメールを確認" })).toBeVisible();
+  await manager.getByLabel("管理者メールアドレス").fill("manager@alpha.example.com");
+  await manager.getByLabel("初回設定キー").fill(setupKey);
+  await manager.getByRole("button", { name: "設定リンクを送る" }).click();
+  await expect(manager.getByText("パスワード設定リンクをメールで送りました。30分以内に開いてください。")).toBeVisible();
+  const mail = JSON.parse(await readFile("test-results/manager-mailbox.json", "utf-8"));
+  expect(mail.email).toBe("manager@alpha.example.com");
+  const managerSetup = await context.newPage();
+  await managerSetup.goto(mail.link);
+  await expect(managerSetup.getByRole("heading", { name: "管理者パスワードを設定" })).toBeVisible();
+  await managerSetup.getByLabel("管理者パスワード", { exact: true }).fill("merchant-password-123");
+  await managerSetup.getByLabel("パスワードをもう一度").fill("merchant-password-123");
+  await managerSetup.getByRole("button", { name: "パスワードを設定" }).click();
+  await expect(managerSetup.getByRole("heading", { name: "店舗のシフト管理を始める" })).toBeVisible();
+  await managerSetup.request.post("/s/alpha-shop/api/auth/logout");
+  await managerSetup.goto("/s/alpha-shop/admin");
+  await managerSetup.getByLabel("管理者メールアドレス").fill("manager@alpha.example.com");
+  await managerSetup.getByLabel("管理者パスワード", { exact: true }).fill("merchant-password-123");
+  await managerSetup.getByRole("button", { name: "ログイン" }).click();
+  await expect(managerSetup.getByRole("heading", { name: "店舗のシフト管理を始める" })).toBeVisible();
   expect((await manager.request.get("/api/platform/merchants")).status()).toBe(401);
   await context.close();
   await page.getByRole("button", { name: "契約・連絡先を編集" }).click();

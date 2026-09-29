@@ -1,11 +1,13 @@
 """Operator controls, billing and real store-data separation."""
 
 from datetime import date
+from urllib.parse import urlsplit
 
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session
 
-from backend import db, platform
+from backend import auth, db, platform
 from backend.main import app
 
 
@@ -47,8 +49,41 @@ def test_production_operator_setup_key(tmp_path, monkeypatch):
         engine.dispose()
 
 
+def test_existing_merchant_database_is_migrated_on_startup(tmp_path, monkeypatch):
+    from alembic import command
+    from alembic.config import Config
+
+    engine = setup_platform(tmp_path, monkeypatch)
+    mid = "a" * 32
+    path = tmp_path / "tenants" / mid / "shift.db"
+    path.parent.mkdir(parents=True)
+    store_engine = create_engine("sqlite:///" + path.as_posix())
+    try:
+        config = Config("alembic.ini")
+        with store_engine.connect() as connection:
+            config.attributes["connection"] = connection
+            command.upgrade(config, "006")
+        with Session(engine) as session:
+            session.add(platform.Merchant(
+                id=mid, slug="old-merchant", name="既存店", legal_name="既存店",
+                deployment_status="稼働中", created_at=platform.now(), updated_at=platform.now(),
+            ))
+            session.commit()
+        platform.migrate_tenants()
+        with store_engine.connect() as connection:
+            assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "007"
+            assert connection.execute(text("PRAGMA table_info(manager_auth)")).fetchall()[-1][1] == "email"
+    finally:
+        db.tenant_engine.cache_clear()
+        store_engine.dispose()
+        engine.dispose()
+
+
 def test_operator_provisions_isolated_suites_and_bills(tmp_path, monkeypatch):
     engine = setup_platform(tmp_path, monkeypatch)
+    messages = {}
+    monkeypatch.setattr(auth, "email_ready", lambda: True)
+    monkeypatch.setattr(auth, "send_manager_setup_mail", lambda email, link: messages.__setitem__(email, link))
     try:
         with TestClient(app) as operator:
             assert operator.get("/api/platform/merchants").status_code == 401
@@ -64,14 +99,41 @@ def test_operator_provisions_isolated_suites_and_bills(tmp_path, monkeypatch):
                 key = provision.json()["manager_setup_token"]
                 assert operator.post(f"/s/{slug}/api/auth/setup", json={
                     "password": "manager-password-123", "setup_token": key,
+                }).status_code == 409
+                email = slug + "@example.com"
+                if slug == "alpha":
+                    def failed_mail(_email, _link):
+                        raise RuntimeError("smtp failed")
+
+                    assert operator.post(f"/s/{slug}/api/auth/setup-request", json={
+                        "email": email, "setup_token": "invalid-setup-key" * 3,
+                    }).status_code == 403
+                    with monkeypatch.context() as trial:
+                        trial.setattr(auth, "send_manager_setup_mail", failed_mail)
+                        assert operator.post(f"/s/{slug}/api/auth/setup-request", json={
+                            "email": email, "setup_token": key,
+                        }).status_code == 503
+                    with Session(db.tenant_engine(mid)) as store:
+                        assert store.query(db.ManagerSetupLink).count() == 0
+                assert operator.post(f"/s/{slug}/api/auth/setup-request", json={
+                    "email": email, "setup_token": key,
                 }).status_code == 200
+                assert messages[email].startswith(f"http://testserver/s/{slug}/admin#setup=")
+                token = urlsplit(messages[email]).fragment.removeprefix("setup=")
+                assert operator.post(f"/s/{slug}/api/auth/setup-complete", json={
+                    "token": token, "password": "manager-password-123",
+                }).status_code == 200
+                assert operator.post(f"/s/{slug}/api/auth/setup-complete", json={
+                    "token": token, "password": "manager-password-123",
+                }).status_code == 410
                 assert operator.get(f"/s/{slug}/api/state").status_code == 200
                 assert operator.get(f"/s/{slug}/admin").status_code == 200
                 assert operator.get(f"/s/{slug}/employee").status_code == 200
                 assert operator.get(f"/s/{slug}/clock").status_code == 200
             # A session from alpha does not authenticate against bravo's DB.
             with TestClient(app) as isolated:
-                assert isolated.post("/s/alpha/api/auth/login", json={"password": "manager-password-123"}).status_code == 200
+                assert isolated.post("/s/alpha/api/auth/login", json={"email": "bravo@example.com", "password": "manager-password-123"}).status_code == 401
+                assert isolated.post("/s/alpha/api/auth/login", json={"email": "alpha@example.com", "password": "manager-password-123"}).status_code == 200
                 assert isolated.get("/s/alpha/api/state").status_code == 200
                 assert isolated.get("/s/bravo/api/state").status_code == 401
                 state = isolated.get("/s/alpha/api/state").json()
@@ -81,7 +143,7 @@ def test_operator_provisions_isolated_suites_and_bills(tmp_path, monkeypatch):
                 assert state["store"] is None
                 assert isolated.get("/s/bravo/api/auth/status").json()["authenticated"] is False
             with TestClient(app) as bravo_manager:
-                assert bravo_manager.post("/s/bravo/api/auth/login", json={"password": "manager-password-123"}).status_code == 200
+                assert bravo_manager.post("/s/bravo/api/auth/login", json={"email": "bravo@example.com", "password": "manager-password-123"}).status_code == 200
                 assert bravo_manager.get("/s/bravo/api/state").json()["store"] is None
                 assert bravo_manager.get("/s/alpha/api/state").status_code == 401
             assert operator.get("/api/platform/merchants").status_code == 200
@@ -119,7 +181,9 @@ def test_operator_provisions_isolated_suites_and_bills(tmp_path, monkeypatch):
             reset = operator.post(f'/api/platform/merchants/{alpha["id"]}/reset-manager')
             assert reset.status_code == 200
             assert operator.get("/s/alpha/api/auth/status").json()["configured"] is False
-            assert operator.post("/s/alpha/api/auth/setup", json={"password": "new-manager-password", "setup_token": reset.json()["manager_setup_token"]}).status_code == 200
+            assert operator.post("/s/alpha/api/auth/setup-request", json={"email": "new-alpha@example.com", "setup_token": reset.json()["manager_setup_token"]}).status_code == 200
+            token = urlsplit(messages["new-alpha@example.com"]).fragment.removeprefix("setup=")
+            assert operator.post("/s/alpha/api/auth/setup-complete", json={"token": token, "password": "new-manager-password"}).status_code == 200
     finally:
         db.tenant_engine.cache_clear()
         engine.dispose()

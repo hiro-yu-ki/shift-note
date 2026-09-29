@@ -69,14 +69,20 @@ def email_ready():
 
 
 def send_code(email, code):
+    send_message(
+        email,
+        "シフトノート ログイン確認コード",
+        f"確認コード: {code}\n\n有効期限は10分です。シフトノートの従業員ログイン画面に入力してください。\nこのコードを他の人に伝えないでください。心当たりがなければ、このメールは破棄してください。",
+    )
+
+
+def send_message(email, subject, content):
     config = mail_settings()
     msg = EmailMessage()
     msg["From"] = config["SHIFT_MAIL_FROM"]
     msg["To"] = email
-    msg["Subject"] = "シフトノート ログイン確認コード"
-    msg.set_content(
-        f"確認コード: {code}\n\n有効期限は10分です。シフトノートの従業員ログイン画面に入力してください。\nこのコードを他の人に伝えないでください。心当たりがなければ、このメールは破棄してください。"
-    )
+    msg["Subject"] = subject
+    msg.set_content(content)
     host, port = config["SHIFT_SMTP_HOST"], int(config.get("SHIFT_SMTP_PORT") or "465")
     context = ssl.create_default_context()
     if port == 465:
