@@ -165,6 +165,12 @@ export function SubmissionForm({
           end={period.end}
           selected={day || undefined}
           onSelect={(d) => D(d)}
+          dayLabel={(d) => {
+            const slots = form.slots.filter((s) => s.date === d);
+            return slots.length
+              ? slots.map((s) => s.kind === "勤務不可" ? "休み希望" : `${s.kind} ${hm(s.start)}から${hm(s.end)}`).join("、")
+              : "未入力";
+          }}
           caption={
             locked
               ? "入力期間は終了しています。"

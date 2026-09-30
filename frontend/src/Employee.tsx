@@ -195,6 +195,12 @@ export function Employee({
                 caption="日付を押すと勤務・休憩の詳細を確認できます。"
                 actionLabel="勤務を確認"
                 onSelect={DD}
+                dayLabel={(d) => {
+                  const shifts = data.assignments.filter((a) => a.date === d);
+                  return shifts.length
+                    ? shifts.map((a) => `${hm(a.start)}から${hm(a.end)}まで勤務`).join("、")
+                    : "確定勤務なし";
+                }}
                 renderDay={(d) => (
                   <>
                     {data.assignments

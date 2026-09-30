@@ -1669,3 +1669,75 @@ td {
 .platform-shell{min-height:100vh;display:grid;grid-template-columns:215px minmax(0,1fr);background:#fafaf8;color:#253734}.platform-sidebar{background:#f1f2ee;border-right:1px solid #d8ded9;padding:28px 16px;display:flex;flex-direction:column;gap:40px}.platform-brand{font-weight:700;padding:0 11px;letter-spacing:.03em}.platform-brand small{display:block;margin-top:7px;color:#667a71;font-weight:400}.platform-sidebar nav{display:grid;gap:4px}.platform-sidebar nav button,.platform-logout{background:none;border:0;border-radius:0;justify-content:flex-start;gap:12px;text-align:left;padding:12px;color:#40554e}.platform-sidebar nav button.active{color:#195947;border-left:2px solid #195947;background:#e7ece7}.platform-logout{margin-top:auto}.platform-main{width:100%;max-width:1480px;padding:34px clamp(22px,4vw,64px) 90px}.platform-top{display:flex;justify-content:space-between;align-items:start;padding-bottom:22px;border-bottom:1px solid #cdd7cf;margin-bottom:35px}.platform-top h1{font-size:28px;font-weight:550}.platform-top>span{color:#667a71}.platform-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}.platform-metrics>div{padding:18px 0;border-top:2px solid #3f7562;display:grid;gap:8px}.platform-metrics span,.platform-metrics small{color:#63776e}.platform-metrics strong{font-size:27px;font-weight:550;font-variant-numeric:tabular-nums}.platform-section{padding:32px 0;border-bottom:1px solid #d8ded9}.platform-section h2{margin:0 0 15px}.platform-todo{display:grid;grid-template-columns:1fr 1fr;gap:20px}.platform-todo button{border-radius:0;justify-content:space-between;padding:18px;background:#fff}.platform-activity{display:grid;grid-template-columns:120px 1fr auto;gap:18px;align-items:center;padding:14px 4px;border-bottom:1px solid #d8ded9}.platform-activity small{color:#72847a}.platform-toolbar{display:flex;gap:12px;align-items:center;margin-bottom:24px}.platform-toolbar input{flex:1;min-width:170px;max-width:420px}.platform-merchant-list{border-top:1px solid #cbd5cd}.platform-merchant-list button{display:grid;grid-template-columns:minmax(180px,2fr) repeat(3,minmax(100px,1fr));gap:14px;align-items:center;width:100%;border:0;border-bottom:1px solid #d8ded9;border-radius:0;background:none;text-align:left;padding:18px 8px}.platform-merchant-list button:hover,.platform-merchant-list button.active{background:#eef3ef}.platform-merchant-list small{display:block;color:#708177;font-weight:400}.platform-merchant-detail{padding:35px 0}.platform-merchant-detail h2{font-size:24px;margin:3px 0}.platform-merchant-detail dl,.platform-invoice-detail dl{display:grid;grid-template-columns:140px minmax(0,1fr);gap:0;margin:22px 0}.platform-merchant-detail dt,.platform-merchant-detail dd,.platform-invoice-detail dt,.platform-invoice-detail dd{margin:0;padding:11px 0;border-bottom:1px solid #d8ded9}.platform-merchant-detail dt,.platform-invoice-detail dt{color:#667a71}.platform-distribution,.platform-provision,.platform-setup-key{margin:26px 0;padding:20px 0;border-top:1px solid #cbd5cd}.platform-distribution a{display:inline-block;margin-right:24px;color:#1b6851;text-decoration:underline;text-underline-offset:4px}.platform-setup-key code{font-size:16px;word-break:break-all;margin-right:15px}.platform-bill-form,.platform-settings{display:flex;flex-wrap:wrap;align-items:end;gap:14px}.platform-bill-form label,.platform-settings label,.platform-payment label,.platform-login label{display:grid;gap:7px}.platform-bill-form select{min-width:240px}.platform-settings{display:grid;max-width:650px;align-items:stretch}.platform-editor,.platform-invoice-detail{background:#fff;width:min(100%,820px);max-height:92vh;overflow-y:auto;padding:30px}.platform-fields{display:grid;grid-template-columns:1fr 1fr;gap:15px 20px;margin:22px 0}.platform-fields label{display:grid;gap:6px;font-weight:600}.platform-fields input,.platform-fields select,.platform-fields textarea,.platform-settings input,.platform-settings textarea{width:100%;font-weight:400}.platform-fields .wide{grid-column:1/-1}.platform-invoice-detail{width:min(100%,640px)}.platform-invoice-detail h2{margin:0}.platform-payment{display:flex;gap:12px;align-items:end;flex-wrap:wrap;border-top:1px solid #d8ded9;padding-top:20px;margin-top:26px}.platform-login form{display:grid;gap:16px;max-width:420px;margin:30px 0}.platform-login label input{width:100%}
 @media(max-width:800px){.platform-shell{display:block}.platform-sidebar{padding:15px;gap:12px}.platform-sidebar nav{display:flex;flex-wrap:wrap}.platform-sidebar nav button{font-size:12px;padding:8px}.platform-logout{margin:0}.platform-main{padding:22px 16px 70px}.platform-metrics{grid-template-columns:1fr 1fr}.platform-todo{grid-template-columns:1fr}.platform-merchant-list button{grid-template-columns:1fr 1fr;font-size:12px}.platform-activity{grid-template-columns:1fr;gap:3px}.platform-fields{grid-template-columns:1fr}.platform-toolbar{flex-wrap:wrap}.platform-top h1{font-size:23px}}
 .platform-reset,.platform-payments{border-top:1px solid #d8ded9;padding:20px 0;margin-top:26px}.platform-payments .spread{padding:10px 0;border-bottom:1px solid #d8ded9}
+
+@media screen and (max-width: 600px) {
+  .employee-header { padding: 18px 16px; }
+  .employee-main { padding: 0 14px 48px; }
+  .employee-nav { margin: 8px 0 26px; }
+  .employee-nav button { min-height: 52px; font-size: 13px; }
+  .month-heading { align-items: start; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+  .month-heading > div:first-child { min-width: 0; }
+  .month-heading h2 > span { font-size: 34px; }
+  .month-heading h2 > small { margin-left: 4px; }
+  .month-heading p { max-width: none; font-size: 12px; }
+  .month-controls { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; width: 100%; }
+  .calendar-mode button { min-height: 44px; padding: 8px 10px; font-size: 12px; }
+  .month-navigation button { width: 44px; height: 44px; }
+  .month-weekdays { padding-bottom: 7px; }
+  .month-weekdays span { text-align: center; padding: 0; font-size: 12px; }
+  .calendar-day, .calendar-blank, .period-calendar .calendar-day {
+    min-height: 62px; padding: 7px 2px; align-items: center; gap: 6px;
+  }
+  .calendar-day:not(:disabled) { touch-action: manipulation; }
+  .calendar-day:focus-visible { outline: 2px solid #315c48; outline-offset: -2px; }
+  .day-number { font-size: 17px; line-height: 1.2; }
+  .day-content { flex-direction: row; justify-content: center; align-items: center; gap: 4px; }
+  .day-slot, .day-slot.confirmed {
+    width: 7px; height: 7px; flex: 0 0 7px; padding: 0; border: 0;
+    border-radius: 50%; background: #739264; font-size: 0; overflow: hidden;
+  }
+  .day-slot.preferred { background: #b99a57; }
+  .day-slot.unavailable { background: #bdc1b1; }
+  .day-slot.confirmed { background: #547c4c; }
+  .day-slot > *, .day-content > small, .day-add span { display: none !important; }
+  .day-add { margin: 0; }
+  .day-add svg { width: 14px; height: 14px; }
+  .calendar-legend { font-size: 11px; gap: 12px; }
+  .modal { width: 100vw; max-height: 100dvh; top: auto; bottom: 0; left: 0; transform: none; padding: 22px 16px max(20px, env(safe-area-inset-bottom)); }
+  .modal footer { flex-direction: column-reverse; align-items: stretch; }
+  .modal footer button { min-height: 48px; width: 100%; justify-content: center; }
+  .choice-tabs { gap: 8px; }
+  .choice-tabs button { flex: 1; min-height: 48px; padding: 8px 2px; font-size: 12px; }
+  .day-time-row { flex-wrap: wrap; }
+  .day-time-row .field { flex: 1 1 40%; }
+  .day-time-row > .icon { margin-top: 0; min-width: 44px; min-height: 44px; }
+  .kiosk-main { padding: 36px 16px 72px; }
+  .kiosk-main h1 { font-size: 34px; }
+  .kiosk-clock { font-size: 54px; }
+  .kiosk-tabs { margin: 28px 0 24px; }
+  .kiosk-tabs button { flex: 1 1 0; min-width: 0; min-height: 52px; padding: 10px 4px; }
+  .kiosk-people { grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); }
+  .kiosk-people button { min-height: 72px; }
+  .kiosk-submit { min-height: 64px; }
+  .platform-sidebar { padding: 14px 16px; }
+  .platform-sidebar nav { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; }
+  .platform-sidebar nav button { flex: 0 0 auto; min-height: 44px; white-space: nowrap; }
+  .platform-main { padding: 22px 16px 64px; }
+  .platform-top { gap: 10px; flex-wrap: wrap; }
+  .platform-toolbar input { min-width: 0; width: 100%; max-width: none; }
+  .platform-toolbar button { min-height: 44px; }
+  .platform-merchant-list button { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .platform-merchant-list button > * { min-width: 0; overflow-wrap: anywhere; }
+  .platform-merchant-detail dl, .platform-invoice-detail dl { grid-template-columns: minmax(0, 1fr); }
+  .platform-merchant-detail dt, .platform-invoice-detail dt { border-bottom: 0; padding-bottom: 0; }
+  .platform-editor, .platform-invoice-detail { max-height: 100dvh; padding: 20px 16px; }
+  .ops-edit-backdrop { padding: 0; }
+  .ops-edit { max-height: 100dvh; width: 100%; padding: 20px 16px; }
+  .platform-shell input, .platform-shell select, .platform-shell textarea, .kiosk-app input { font-size: 16px; }
+  .time-matrix-scroll { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
+  .time-matrix { min-width: 660px; }
+  .time-matrix th:first-child { width: 92px; }
+  .time-matrix th[scope="row"], .time-matrix th:first-child { position: sticky; left: 0; z-index: 1; background: #fffefa; }
+  .time-matrix .time-cell { min-height: 88px; padding: 8px; }
+  .time-matrix .matrix-name { font-size: 12px; }
+}

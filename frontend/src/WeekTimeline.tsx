@@ -163,7 +163,7 @@ export function WeekTimeline({
       </details>
       <div className="toolbar spread">
         <p className="muted">
-          枠内のいずれかの時間に勤務する人の名前を表示します。マウスを重ねると詳細、押すと勤務を選んで編集できます。
+          枠内のいずれかの時間に勤務する人の名前を表示します。時間帯を押すと詳細を確認・編集できます。
         </p>
         <div className="row">
           <button
@@ -185,6 +185,7 @@ export function WeekTimeline({
           </button>
         </div>
       </div>
+      <div className="time-matrix-scroll" role="region" aria-label="日付と時間帯別の勤務表" tabIndex={0}>
       <table className="time-matrix">
         <thead>
           <tr>
@@ -267,6 +268,7 @@ export function WeekTimeline({
           ))}
         </tbody>
       </table>
+      </div>
       {hover &&
         createPortal(
           <div

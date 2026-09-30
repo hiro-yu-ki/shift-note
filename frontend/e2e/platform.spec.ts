@@ -62,5 +62,8 @@ test("運営者が加盟店の3画面を作り、請求と入金を管理する"
   await expect(page.getByRole("heading", { name: /請求書 SN-/ })).toBeVisible();
   await page.getByRole("button", { name: "記録", exact: true }).click();
   await expect(page.getByRole("cell", { name: "入金済み" })).toBeVisible();
+  await page.setViewportSize({ width: 360, height: 800 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+  await page.screenshot({ path: "../artifacts/platform-mobile.png", fullPage: true });
   expect(errors).toEqual([]);
 });

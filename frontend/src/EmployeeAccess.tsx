@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "./types";
+import { api, appUrl } from "./types";
 import { Field } from "./ui";
 import { Employee } from "./Employee";
 
@@ -48,7 +48,7 @@ export default function EmployeeAccess() {
               ))}
             </select>
           </Field>
-          <a href="/help/employee.html" target="_blank" rel="noreferrer">
+          <a href={appUrl("/help/employee.html")} target="_blank" rel="noreferrer">
             使い方
           </a>
           <button

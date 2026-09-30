@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test("店舗の打刻画面で名前を選び出勤・退勤する", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 });
   let working = false;
   await page.route("**/api/kiosk/**", async (route) => {
     const url = route.request().url();
@@ -20,6 +21,8 @@ test("店舗の打刻画面で名前を選び出勤・退勤する", async ({ pa
   await page.goto("/clock#token=test-kiosk-link");
   await expect(page.getByRole("heading", { name: "出勤・退勤" })).toBeVisible();
   await page.getByRole("button", { name: /山田 花.*予定/ }).click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+  await page.screenshot({ path: "../artifacts/kiosk-mobile.png", fullPage: true });
   await page.getByRole("button", { name: "出勤を記録" }).click();
   await expect(page.getByText("出勤を記録しました")).toBeVisible();
   await page.getByRole("button", { name: "退勤する" }).click();

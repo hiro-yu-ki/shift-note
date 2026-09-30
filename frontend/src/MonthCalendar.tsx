@@ -10,6 +10,7 @@ export function MonthCalendar({
   selected,
   caption,
   actionLabel = "希望を入力",
+  dayLabel,
 }: {
   start: string;
   end: string;
@@ -18,6 +19,7 @@ export function MonthCalendar({
   selected?: string;
   caption?: string;
   actionLabel?: string;
+  dayLabel?: (date: string) => string;
 }) {
   const [month, M] = useState(start.slice(0, 7));
   const [full, F] = useState(false);
@@ -111,6 +113,7 @@ export function MonthCalendar({
             <button
               type="button"
               aria-label={`${d}の${actionLabel}`}
+              aria-description={dayLabel?.(d)}
               aria-pressed={selected === d}
               key={d}
               disabled={!enabled}

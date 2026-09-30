@@ -161,11 +161,11 @@ test("初回設定から希望提出・作成・修正・確定・CSVまで", as
   await expect(
     portal.getByRole("heading", { name: "確定したシフト" }),
   ).toBeVisible();
-  await expect(
-    portal
-      .locator(".day-slot.confirmed strong")
-      .filter({ hasText: "10:00–13:00" }),
-  ).toBeVisible();
+  const confirmedDay = portal.getByRole("button", { name: "2099-01-05の勤務を確認" });
+  await expect(confirmedDay).toHaveAttribute("aria-description", /10:00から13:00まで勤務/);
+  await confirmedDay.click();
+  await expect(portal.getByRole("dialog")).toContainText("10:00–13:00");
+  await portal.getByRole("button", { name: "閉じる", exact: true }).click();
   await portal.screenshot({
     path: "../artifacts/confirmed-mobile.png",
     fullPage: true,

@@ -30,14 +30,14 @@ for name in ("Dockerfile", ".dockerignore", "alembic.ini", ".env.example", "THIR
 if not (root / "frontend/dist/index.html").is_file():
     raise SystemExit("Build the frontend first")
 manifest = {name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in sorted(files)}
-manager = out / "shift-note-1.5.0-operator.zip"
+manager = out / "shift-note-1.6.0-operator.zip"
 with ZipFile(manager, "w", ZIP_DEFLATED) as z:
     for name in sorted(files):
         assert not name.endswith((".db", ".db-wal", ".db-shm")) and name != ".env"
         z.write(root / name, name)
     z.writestr("MANIFEST.sha256.json", json.dumps(manifest, indent=2))
-    z.writestr("README.md", "# シフトノート 1.5.0 運営者用\n\n公開URLは https://shift-note.yuki-nova.workers.dev/platform です。運営手順は docs/PLATFORM.md、再起動は docs/CLOUDFLARE_FREE.md を読んでください。加盟店ごとの管理・従業員・勤怠URLは運営画面で自動発行します。既存DBや秘密値は含みません。\n")
-employee = out / "shift-note-1.5.0-employee-guide.zip"
+    z.writestr("README.md", "# シフトノート 1.6.0 運営者用\n\n公開URLは https://shift-note.yuki-nova.workers.dev/platform です。運営手順は docs/PLATFORM.md、再起動は docs/CLOUDFLARE_FREE.md を読んでください。加盟店ごとの管理・従業員・勤怠URLは運営画面で自動発行します。iPhoneとAndroidのブラウザーでも利用できます。既存DBや秘密値は含みません。\n")
+employee = out / "shift-note-1.6.0-employee-guide.zip"
 with ZipFile(employee, "w", ZIP_DEFLATED) as z:
     manual = (root / "frontend/public/help/employee.html").read_text(encoding="utf-8")
     manual = manual.replace('href="../employee"', 'href="#login"')
